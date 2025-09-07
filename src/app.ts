@@ -1,53 +1,63 @@
-import express from "express";
-import mongoose from "mongoose";
+// src/app.ts
 import dotenv from "dotenv";
+dotenv.config(); // Load env variables first
+
+import express, { Request, Response, NextFunction } from "express";
+import bodyParser from "body-parser";
 import cors from "cors";
 
-// Import your route files
-import authRoutes from "./routes/authRoutes";
-import billingRoutes from "./routes/billingRoutes";
 import gptRoutes from "./routes/gptRoutes";
+import mockClioRoutes from "./routes/mockClioRoutes";
+import emailRoutes from "./routes/emailRoutes";
 
-// Load environment variables from .env
-dotenv.config();
+// Validate required environment variables
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("❌ Warning: GEMINI_API_KEY is not set in .env");
+} else {
+  console.log("✅ GEMINI_API_KEY loaded");
+}
 
-// Get MongoDB URI and Port from env
-const MONGO_URI = process.env.MONGO_URI;
-const PORT = process.env.PORT || 5000;
-
-// Connect to MongoDB
-const connectToDB = async () => {
-  try {
-    if (!MONGO_URI) {
-      throw new Error("❌ MONGO_URI is not defined in .env");
-    }
-
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ MongoDB connected");
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
-    process.exit(1);
-  }
-};
-
-// Initialize Express app
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = parseInt(process.env.PORT || "5000", 10);
 
-// ✅ Basic test route
-app.get("/api/test", (req, res) => {
-  res.send("✅ API is working!");
-});
+// ✅ Updated CORS to allow Chrome extension + Render + localhost
+app.use(cors({
+  origin: [
+    "chrome-extension:// moiajblmfageiimmjnplhmpjlnhfnalm", // your extension ID
+    "http://localhost:5000", 
+    "https://legal-billables-backend.onrender.com" // deployed backend
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
-// ✅ Use routes
-app.use("/api/auth", authRoutes);
-app.use("/api/billing", billingRoutes);
+// Middlewares
+app.use(bodyParser.json());
+
+// Routes
 app.use("/api/gpt", gptRoutes);
+app.use("/api/mock-clio", mockClioRoutes);
+app.use("/api/email", emailRoutes);
+console.log("📩 GPT routes mounted at /api/gpt");
 
-// Start the server after DB connects
-connectToDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
-  });
+// Health check
+app.get("/", (_req: Request, res: Response) => {
+  res.send("🚀 Legal Billables Backend Running with Gemini");
 });
+
+// 404 handler
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// Global error handler
+app.use(
+  (err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("Global error handler:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+);
+
+app.listen(PORT, "127.0.0.1", () => {
+  console.log(`✅ Server running at http://127.0.0.1:${PORT}`);
+});   
