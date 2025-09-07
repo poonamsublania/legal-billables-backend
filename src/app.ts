@@ -8,7 +8,7 @@ import cors from "cors";
 
 import gptRoutes from "./routes/gptRoutes";
 import mockClioRoutes from "./routes/mockClioRoutes";
-import emailRoutes from "./routes/emailRoutes";
+
 
 // Validate required environment variables
 if (!process.env.GEMINI_API_KEY) {
@@ -37,7 +37,7 @@ app.use(bodyParser.json());
 // Routes
 app.use("/api/gpt", gptRoutes);
 app.use("/api/mock-clio", mockClioRoutes);
-app.use("/api/email", emailRoutes);
+
 console.log("📩 GPT routes mounted at /api/gpt");
 
 // Health check
