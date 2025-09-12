@@ -1,43 +1,41 @@
-
-import express, { Request, Response } from "express";
+// src/routes/clioRoutes.ts
+import { Router } from "express";
 import axios from "axios";
 import { getClioToken } from "../utils/tokenStore";
 
-const router = express.Router();
+const router = Router();
 
-// POST /api/clio/log
-router.post("/log", async (req: Request, res: Response) => {
-  const token = getClioToken();
-
-  if (!token) {
-    return res.status(401).json({
-      error: "User not authenticated with Clio. Please connect Clio first.",
-    });
-  }
-
-  const { summary, timeSpent, email } = req.body;
-
-  if (!summary || !timeSpent) {
-    return res
-      .status(400)
-      .json({ error: "Missing summary or timeSpent in request body." });
-  }
+/**
+ * POST /api/clio/log
+ * Body: { summary: string, timeSpent: number (seconds), matterId?: number }
+ */
+router.post("/log", async (req, res) => {
+  const { summary, timeSpent, matterId } = req.body;
 
   try {
-    const durationMinutes = Math.ceil(timeSpent / 60); // seconds to minutes
+    const token = getClioToken();
+    if (!token) {
+      return res.status(401).json({ error: "❌ Not authenticated with Clio. Please login first." });
+    }
 
-    // 🔧 Replace with real matter ID logic (e.g., based on email or user)
-    const matterId = "1719986897";
+    if (!summary || !timeSpent) {
+      return res.status(400).json({ error: "❌ Missing required fields: summary or timeSpent" });
+    }
+
+    // If caller didn’t pass a matterId, use a fixed placeholder (replace this later with dynamic logic)
+    const MATTER_ID = matterId ||1719986897 ;
+
+    // Convert seconds → hours (Clio expects a decimal hour quantity)
+    const quantityInHours = timeSpent / 3600;
 
     const response = await axios.post(
-      "https://app.clio.com/api/v4/time_entries",
+      "https://app.clio.com/api/v4/activities.json",
       {
-        time_entry: {
-          description: summary,
-          duration: durationMinutes,
-          billable: true,
-          matter_id: matterId,
-        },
+        type: "TimeEntry",
+        description: summary,
+        matter: { id: MATTER_ID },
+        quantity: quantityInHours,
+        rate: 100, // optional: adjust or remove
       },
       {
         headers: {
@@ -47,14 +45,11 @@ router.post("/log", async (req: Request, res: Response) => {
       }
     );
 
-    console.log("✅ Time logged to Clio:", response.data);
-    res.status(200).json({ success: true, entry: response.data });
-  } catch (error: any) {
-    console.error("❌ Error logging to Clio:", error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      error: error.response?.data || error.message,
-    });
+    console.log("✅ Logged time entry to Clio:", response.data);
+    res.json({ success: true, entry: response.data });
+  } catch (err: any) {
+    console.error("❌ Error logging to Clio:", err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data || "Failed to log entry to Clio" });
   }
 });
 
