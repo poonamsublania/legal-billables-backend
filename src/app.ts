@@ -4,11 +4,12 @@ dotenv.config(); // Load env variables first
 import express, { Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
+import "./config/db";
 
 import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
 import clioRoutes from "./routes/clioRoutes";
-import mockClioRoutes from "./routes/mockClioRoutes"; // <-- you forgot this import
+import mockClioRoutes from "./routes/mockClioRoutes";
 
 // Validate required environment variables
 if (!process.env.GEMINI_API_KEY) {
@@ -20,10 +21,10 @@ if (!process.env.GEMINI_API_KEY) {
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
-// ✅ Updated CORS to allow Chrome extension + Render + localhost
+// ✅ Updated CORS
 app.use(cors({
   origin: [
-    "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm", // ⚠️ remove space after //
+    "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm",
     "http://localhost:5000",
     "https://legal-billables-backend.onrender.com"
   ],
@@ -34,11 +35,6 @@ app.use(cors({
 // Middlewares
 app.use(bodyParser.json());
 
-// Routes
-app.use("/api/gpt", gptRoutes);
-app.use("/api/mock-clio", mockClioRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/clio", clioRoutes);
 
 console.log("📩 GPT routes mounted at /api/gpt");
 
@@ -47,28 +43,45 @@ app.get("/", (_req: Request, res: Response) => {
   res.send("🚀 Legal Billables Backend Running with Gemini");
 });
 
-// 404 handler
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
-// Global error handler
-app.use(
-  (err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error("Global error handler:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-);
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
-});
-
-// 404 handler
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
+// Test route
 app.get("/test", (_req, res) => {
   res.json({ message: "✅ Test route working" });
 });
+
+app.use("/api/auth", authRoutes);
+console.log("✅ Mounted Auth routes from routes/authRoutes.ts at /api/auth");
+
+app.use("/api/gpt", gptRoutes);
+console.log("✅ Mounted GPT routes from routes/gptRoutes.ts at /api/gpt");
+
+app.use("/api/mock-clio", mockClioRoutes);
+console.log("✅ Mounted Mock Clio routes from routes/mockClioRoutes.ts at /api/mock-clio");
+
+app.use("/api/clio", clioRoutes);
+console.log("✅ Mounted Clio routes from routes/clioRoutes.ts at /api/clio");
+
+
+
+// 404 handler (keep only ONE)
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+
+// Start server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
+
+  // Debug: list all mounted routes
+  if ((app as any)._router) {
+    (app as any)._router.stack.forEach((middleware: any) => {
+      if (middleware.route && middleware.route.path) {
+        const methods = Object.keys(middleware.route.methods)
+          .map(m => m.toUpperCase())
+          .join(", ");
+        console.log(`➡️  [${methods}] ${middleware.route.path}`);
+      }
+    });
+  }
+});
+

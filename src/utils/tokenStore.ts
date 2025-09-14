@@ -14,3 +14,4 @@ export const getClioToken = (): any | null => {
 export const clearClioToken = () => {
   clioToken = null;
 };
+

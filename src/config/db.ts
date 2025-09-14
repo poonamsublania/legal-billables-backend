@@ -1,24 +1,15 @@
-// backend/src/config/db.ts
-
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 
-// Load .env variables
-dotenv.config();
+const MONGO_URI = process.env.MONGO_URI;
 
-export const connectToDB = async () => {
-  try {
-    const mongoURI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  throw new Error("❌ MONGO_URI not defined in .env");
+}
 
-    if (!mongoURI) {
-      console.error("❌ MONGO_URI not found in environment variables.");
-      process.exit(1);
-    }
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => console.error("❌ MongoDB connection error:", err));
 
-    await mongoose.connect(mongoURI);
-    console.log("✅ MongoDB connected successfully.");
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
-    process.exit(1);
-  }
-};
+  mongoose.connection.on("connected", () => console.log("🔹 Mongoose connected to DB"));
+mongoose.connection.on("error", err => console.error("🔹 Mongoose connection error:", err));
+mongoose.connection.on("disconnected", () => console.log("🔹 Mongoose disconnected"));
