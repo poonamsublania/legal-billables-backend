@@ -13,17 +13,21 @@ export const createClioTimeEntry = async (
         description,
         duration: durationInSeconds,
         date: new Date().toISOString().split("T")[0],
-        matter_id: 1719986897,
+        matter_id: matterId, // use the parameter here
       },
     },
   };
 
-  const response = await axios.post("https://app.clio.com/api/v4/time_entries", data, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const response = await axios.post(
+    "https://app.clio.com/api/v4/time_entries",
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
   return response.data;
 };
