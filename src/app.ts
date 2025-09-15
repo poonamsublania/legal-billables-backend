@@ -54,6 +54,7 @@ console.log("✅ Mounted Auth routes from routes/authRoutes.ts at /api/auth");
 
 app.use("/api/gpt", gptRoutes);
 console.log("✅ Mounted GPT routes from routes/gptRoutes.ts at /api/gpt");
+console.log("GPT routes registered");
 
 app.use("/api/mock-clio", mockClioRoutes);
 console.log("✅ Mounted Mock Clio routes from routes/mockClioRoutes.ts at /api/mock-clio");
