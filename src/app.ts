@@ -10,6 +10,7 @@ import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
 import clioRoutes from "./routes/clioRoutes";
 import mockClioRoutes from "./routes/mockClioRoutes";
+import billingRoutes from "./routes/billingRoutes";
 
 // Validate required environment variables
 if (!process.env.GEMINI_API_KEY) {
@@ -61,6 +62,7 @@ app.use("/api/clio", clioRoutes);
 console.log("✅ Mounted Clio routes from routes/clioRoutes.ts at /api/clio");
 
 
+app.use("/api/billing", billingRoutes);
 
 // 404 handler (keep only ONE)
 app.use((_req: Request, res: Response) => {

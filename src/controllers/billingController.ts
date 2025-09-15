@@ -1,32 +1,23 @@
 import { Request, Response } from "express";
-import { createClioTimeEntry } from "../services/clioService";
-import ClioToken from "../models/clioToken";
+import { logTimeEntry } from "../services/clioService";
 
-export const logBillable = async (req: Request, res: Response) => {
+export const createTimeEntry = async (req: Request, res: Response) => {
   try {
-    const { description, durationInSeconds, matterId } = req.body;
+    const accessToken = req.headers.authorization?.split(" ")[1]; // Bearer token
+    if (!accessToken) return res.status(401).json({ error: "No access token" });
 
-    if (!description || !durationInSeconds || !matterId) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+    const { matter_id, user_id, duration, description, date } = req.body;
 
-    // ✅ Get token from MongoDB
-    const tokenDoc = await ClioToken.findById("singleton");
-    if (!tokenDoc || !tokenDoc.clioAccessToken) {
-      return res.status(401).json({ error: "No Clio token found. Please authenticate first." });
-    }
-
-    // ✅ Call Clio service
-    const result = await createClioTimeEntry(
-      tokenDoc.clioAccessToken,
+    const timeEntry = await logTimeEntry(accessToken, {
+      matter_id,
+      user_id,
+      duration,
       description,
-      durationInSeconds,
-      matterId
-    );
+      date
+    });
 
-    res.json({ success: true, result });
-  } catch (err: any) {
-    console.error("❌ Error logging billable:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to log billable entry" });
+    res.json({ success: true, timeEntry });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to log time entry" });
   }
 };
