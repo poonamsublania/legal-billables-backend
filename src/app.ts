@@ -87,3 +87,8 @@ app.listen(PORT, "0.0.0.0", () => {
   }
 });
 
+
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error", details: err.message });
+});
