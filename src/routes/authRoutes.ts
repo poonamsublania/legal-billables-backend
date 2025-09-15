@@ -5,9 +5,9 @@ import { redirectToClioLogin, handleClioCallback } from "../controllers/authCont
 const router = Router();
 
 // Step 1: Start OAuth
-router.get("/clio/login", redirectToClioLogin);
+router.get("/api/auth/clio/login", redirectToClioLogin);
 
 // Step 2: Handle callback
-router.get("/clio/callback", handleClioCallback);
+router.get("/api/auth/clio/callback", handleClioCallback);
 
 export default router;
