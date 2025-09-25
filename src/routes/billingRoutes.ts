@@ -1,10 +1,11 @@
-import express from "express";
-import { createTimeEntry } from "../controllers/billingController";
+import { Router } from "express";
+import { logBillable } from "../controllers/billingController";
 import { requireAuth } from "../middlewares/authMiddleware";
 
-const router = express.Router();
+const router = Router();
 
-router.post("/time-entry", requireAuth, createTimeEntry);
-
+// Make sure this exists
+router.post("/log-billable", requireAuth, logBillable);
 
 export default router;
+
