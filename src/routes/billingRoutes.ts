@@ -6,4 +6,5 @@ const router = express.Router();
 
 router.post("/time-entry", requireAuth, createTimeEntry);
 
+
 export default router;

@@ -1,11 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authMiddleware = void 0;
-const authMiddleware = (req, res, next) => {
-    const token = req.headers.authorization;
-    if (!token)
-        return res.status(401).json({ error: "Unauthorized" });
-    // Validate token here
+exports.requireAuth = void 0;
+const requireAuth = (req, res, next) => {
+    if (!req.headers.authorization) {
+        return res.status(401).json({ error: "OAuth failed" });
+    }
     next();
 };
-exports.authMiddleware = authMiddleware;
+exports.requireAuth = requireAuth;

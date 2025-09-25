@@ -3,31 +3,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createClioTimeEntry = void 0;
-// src/services/clioService.ts
+exports.logTimeEntry = void 0;
 const axios_1 = __importDefault(require("axios"));
-const CLIO_API_URL = "https://app.clio.com/api/v4/time_entries"; // Clio v4 endpoint
-const createClioTimeEntry = async (accessToken, description, durationInSeconds, matterId) => {
+const CLIO_BASE_URL = "https://app.clio.com/api/v4"; // Clio API base
+const logTimeEntry = async (accessToken, timeEntryData) => {
     try {
-        const response = await axios_1.default.post(CLIO_API_URL, {
-            time_entry: {
-                description,
-                duration: durationInSeconds,
-                matter_id: matterId,
-                billed: false,
-            },
+        const response = await axios_1.default.post(`${CLIO_BASE_URL}/activities`, {
+            activity: {
+                matter_id: timeEntryData.matter_id,
+                user_id: timeEntryData.user_id,
+                duration: timeEntryData.duration,
+                description: timeEntryData.description,
+                occurred_at: timeEntryData.date
+            }
         }, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 "Content-Type": "application/json",
             },
         });
-        console.log("✅ Clio entry created:", response.data);
         return response.data;
     }
     catch (error) {
-        console.error("❌ Failed to create Clio entry:", error.response?.data || error.message);
-        throw new Error("Clio time entry failed");
+        console.error("Clio time entry error:", error.response?.data || error.message);
+        throw error;
     }
 };
-exports.createClioTimeEntry = createClioTimeEntry;
+exports.logTimeEntry = logTimeEntry;

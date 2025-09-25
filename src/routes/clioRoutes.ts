@@ -1,9 +1,14 @@
-import { Router } from "express";// your controller
-import { requireAuth } from "../middlewares/authMiddleware"; // correct middleware name
-import { createTimeEntry } from "../controllers/billingController"
+// src/routes/clioRoutes.ts
+import { Router } from "express";
+import { requireAuth } from "../middlewares/authMiddleware";
+import { logTimeEntry, getClioToken } from "../controllers/clioController";
 
 const router = Router();
 
-router.post("/time-entry", requireAuth, createTimeEntry);
+// Endpoint to push tracked time and GPT summary to Clio
+router.post("/time-entry", requireAuth, logTimeEntry);
+
+// Optional endpoint for frontend to fetch the current stored Clio token
+router.get("/token", requireAuth, getClioToken);
 
 export default router;
