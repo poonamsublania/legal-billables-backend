@@ -61,7 +61,7 @@ console.log("✅ Mounted Mock Clio routes from routes/mockClioRoutes.ts at /api/
 app.use("/api/clio", clioRoutes);
 console.log("✅ Mounted Clio routes from routes/clioRoutes.ts at /api/clio");
 
-app.use("/api/billing", billingRoutes);
+app.use("/api/billing/", billingRoutes);
 console.log("✅ Mounted Billing routes from routes/billingRoutes.ts at /api/billing");
 
 // 404 handler (keep only ONE)
@@ -71,8 +71,8 @@ app.use((_req: Request, res: Response) => {
 
 
 // Start server
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`✅ Server running at http://127.0.0.1:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
 
   // Debug: list all mounted routes
   if ((app as any)._router) {

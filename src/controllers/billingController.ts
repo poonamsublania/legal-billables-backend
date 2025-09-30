@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import { logTimeEntry } from "../services/clioService";
 
-export const logBillable = async (req: Request, res: Response) => {
+export const createTimeEntry = async (req: Request, res: Response) => {
   try {
     // Extract access token from Authorization header
     const accessToken = req.headers.authorization?.split(" ")[1]; // Bearer token
