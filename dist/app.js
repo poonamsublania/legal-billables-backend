@@ -52,7 +52,7 @@ app.use("/api/mock-clio", mockClioRoutes_1.default);
 console.log("✅ Mounted Mock Clio routes from routes/mockClioRoutes.ts at /api/mock-clio");
 app.use("/api/clio", clioRoutes_1.default);
 console.log("✅ Mounted Clio routes from routes/clioRoutes.ts at /api/clio");
-app.use("/api/billing", billingRoutes_1.default);
+app.use("/api/billing/", billingRoutes_1.default);
 console.log("✅ Mounted Billing routes from routes/billingRoutes.ts at /api/billing");
 // 404 handler (keep only ONE)
 app.use((_req, res) => {
