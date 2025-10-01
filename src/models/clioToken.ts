@@ -1,17 +1,20 @@
-import mongoose, { Schema, Document } from "mongoose";
+// src/models/clioToken.ts
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface IClioToken extends Document {
-  clioAccessToken: string;
-  clioRefreshToken: string;
-  clioTokenExpiry: number;
+  userId: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: Date;
 }
 
 const ClioTokenSchema = new Schema<IClioToken>({
-  _id: { type: String, default: "singleton" }, // ensures only one record
-  clioAccessToken: { type: String, required: true },
-  clioRefreshToken: { type: String, required: true },
-  clioTokenExpiry: { type: Number, required: true },
+  userId: { type: String, required: true },
+  accessToken: { type: String, required: true },
+  refreshToken: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
 });
 
-export default mongoose.model<IClioToken>("ClioToken", ClioTokenSchema);
-
+// Use default export for easier imports
+const ClioTokenModel = mongoose.model<IClioToken>("ClioToken", ClioTokenSchema);
+export default ClioTokenModel;

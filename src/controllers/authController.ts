@@ -1,21 +1,22 @@
+// src/controllers/clioAuthController.ts
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioToken from "../models/clioToken";
+import ClioTokenModel from "../models/clioToken";
 
-// Redirect to Clio login
+// ✅ Redirect user to Clio login
 export const redirectToClioLogin = (req: Request, res: Response) => {
   const authURL = `https://app.clio.com/oauth/authorize?response_type=code&client_id=${process.env.CLIO_CLIENT_ID}&redirect_uri=${process.env.CLIO_REDIRECT_URI}&scope=read write openid profile email`;
   console.log("🌍 Redirecting to Clio:", authURL);
   res.redirect(authURL);
 };
 
-// Handle Clio callback
+// ✅ Handle Clio OAuth callback
 export const handleClioCallback = async (req: Request, res: Response) => {
   const code = req.query.code as string;
   if (!code) return res.status(400).send("❌ Missing Clio OAuth code");
 
   try {
-    // Exchange code for access token (use x-www-form-urlencoded)
+    // Exchange code for tokens
     const params = new URLSearchParams();
     params.append("grant_type", "authorization_code");
     params.append("client_id", process.env.CLIO_CLIENT_ID!);
@@ -29,13 +30,16 @@ export const handleClioCallback = async (req: Request, res: Response) => {
 
     const { access_token, refresh_token, expires_in } = response.data;
 
-    // Save token in MongoDB
-    const savedToken = await ClioToken.findOneAndUpdate(
-      { _id: "singleton" },
+    // Calculate expiry date
+    const expiresAt = new Date(Date.now() + expires_in * 1000);
+
+    // ⚡ Save/Update token in MongoDB for this user (replace "demoUser" with real userId from your auth system)
+    const savedToken = await ClioTokenModel.findOneAndUpdate(
+      { userId: "demoUser" }, // 👈 TODO: replace with logged-in user ID
       {
-        clioAccessToken: access_token,
-        clioRefreshToken: refresh_token,
-        clioTokenExpiry: Date.now() + expires_in * 1000,
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresAt,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
