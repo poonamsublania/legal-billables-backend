@@ -1,5 +1,6 @@
 // src/controllers/billingController.ts
 import { Request, Response } from "express";
+import { getClioToken, logTimeEntry } from "../services/clioService";
 
 interface BillableData {
   matterId: string;
@@ -22,27 +23,27 @@ export const createTimeEntry = async (req: Request, res: Response): Promise<void
 
     console.log("[BillingController] Billable Data:", billableData);
 
-    // 🚨 DEBUG MODE: reply immediately, skip Clio
-    res.json({ success: true, received: billableData });
-    return;
+    // ✅ Clio integration
+    const accessToken = await getClioToken();
+    if (!accessToken) {
+      res.status(401).json({ error: "No valid Clio access token found" });
+      return;
+    }
 
-    // ===== Clio integration will go here later =====
-    // const accessToken = await getClioToken();
-    // if (!accessToken) {
-    //   res.status(401).json({ error: "No valid Clio access token found" });
-    //   return;
-    // }
-    //
-    // const timeEntryPayload = {
-    //   description: billableData.description,
-    //   duration: billableData.durationInSeconds,
-    //   date: billableData.date,
-    //   matterId: billableData.matterId,
-    //   userId: billableData.userId,
-    // };
-    //
-    // const result = await logTimeEntry(accessToken, timeEntryPayload);
-    // res.json({ success: true, timeEntry: result });
+    console.log("[BillingController] Access Token retrieved");
+
+    const timeEntryPayload = {
+      description: billableData.description,
+      duration: billableData.durationInSeconds,
+      date: billableData.date,
+      matterId: billableData.matterId,
+      userId: billableData.userId,
+    };
+
+    const result = await logTimeEntry(accessToken, timeEntryPayload);
+    console.log("[BillingController] Clio Response:", result);
+
+    res.json({ success: true, timeEntry: result });
   } catch (err: unknown) {
     console.error("[BillingController] Error logging billable:", err);
     res.status(500).json({ error: (err as Error).message || "Failed to log time entry" });
