@@ -3,32 +3,51 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logTimeEntry = void 0;
+exports.logTimeEntry = exports.getClioToken = void 0;
 // src/services/clioService.ts
 const axios_1 = __importDefault(require("axios"));
-const CLIO_BASE_URL = "https://app.clio.com/api/v4"; // Clio API base
-const logTimeEntry = async (accessToken, timeEntryData) => {
-    try {
-        const response = await axios_1.default.post(`${CLIO_BASE_URL}/time_entries`, {
-            time_entry: {
-                matter_id: timeEntryData.matter_id,
-                user_id: timeEntryData.user_id,
-                duration: timeEntryData.duration,
-                description: timeEntryData.description,
-                occurred_at: timeEntryData.date,
+const clioToken_1 = __importDefault(require("../models/clioToken"));
+/**
+ * Get Clio access token from DB
+ */
+const getClioToken = async () => {
+    const tokenDoc = await clioToken_1.default.findOne({ _id: "singleton" });
+    if (!tokenDoc)
+        return null;
+    return tokenDoc.accessToken;
+};
+exports.getClioToken = getClioToken;
+/**
+ * Push time entry to Clio API
+ * @param accessToken Clio API access token
+ * @param payload Object containing: description, duration, date, matterId, userId
+ */
+const logTimeEntry = async (accessToken, payload) => {
+    const { description, duration, date, matterId, userId } = payload;
+    const data = {
+        data: {
+            type: "TimeEntry",
+            attributes: {
+                description,
+                duration,
+                date,
+                matter_id: matterId,
+                user_id: userId || undefined,
             },
-        }, {
+        },
+    };
+    try {
+        const response = await axios_1.default.post("https://app.clio.com/api/v4/time_entries", data, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 "Content-Type": "application/json",
             },
         });
-        console.log("[Clio] Time entry created:", response.data);
         return response.data;
     }
-    catch (error) {
-        console.error("[Clio] Time entry error:", error.response?.data || error.message);
-        throw new Error("Failed to log time entry to Clio");
+    catch (err) {
+        console.error("[ClioService] Error pushing time entry:", err.response?.data || err.message);
+        throw new Error(err.response?.data?.error || "Failed to push time entry to Clio");
     }
 };
 exports.logTimeEntry = logTimeEntry;

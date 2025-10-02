@@ -10,3 +10,4 @@ const authMiddleware_1 = require("../middlewares/authMiddleware");
 const router = express_1.default.Router();
 router.post("/time-entry", authMiddleware_1.requireAuth, billingController_1.createTimeEntry);
 exports.default = router;
+console.log("Billing routes loaded");

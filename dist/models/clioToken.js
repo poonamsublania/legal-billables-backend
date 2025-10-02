@@ -33,11 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// src/models/clioToken.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const ClioTokenSchema = new mongoose_1.Schema({
-    _id: { type: String, default: "singleton" }, // ensures only one record
-    clioAccessToken: { type: String, required: true },
-    clioRefreshToken: { type: String, required: true },
-    clioTokenExpiry: { type: Number, required: true },
+    userId: { type: String, required: true },
+    accessToken: { type: String, required: true },
+    refreshToken: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
 });
-exports.default = mongoose_1.default.model("ClioToken", ClioTokenSchema);
+// Use default export for easier imports
+const ClioTokenModel = mongoose_1.default.model("ClioToken", ClioTokenSchema);
+exports.default = ClioTokenModel;
