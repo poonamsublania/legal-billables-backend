@@ -10,15 +10,15 @@ interface BillableData {
   date: string;
 }
 
-export const createTimeEntry = async (req: Request, res: Response): Promise<void> => {
-  try {
-    console.log("[BillingController] Incoming request body:", req.body);
+export const createTimeEntry = async (req: Request, res: Response) => {
+  console.log("Incoming headers:", req.headers);
+  console.log("Incoming body:", req.body);
 
+  try {
     const { billableData } = req.body as { billableData: BillableData };
 
     if (!billableData) {
-      res.status(400).json({ error: "No billable data provided" });
-      return;
+      return res.status(400).json({ error: "No billable data provided" });
     }
 
     console.log("[BillingController] Billable Data:", billableData);
@@ -26,8 +26,7 @@ export const createTimeEntry = async (req: Request, res: Response): Promise<void
     // ✅ Clio integration
     const accessToken = await getClioToken();
     if (!accessToken) {
-      res.status(401).json({ error: "No valid Clio access token found" });
-      return;
+      return res.status(401).json({ error: "No valid Clio access token found" });
     }
 
     console.log("[BillingController] Access Token retrieved");
