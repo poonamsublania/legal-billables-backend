@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getClioToken } from "../services/clioService";
+import { getClioToken, logTimeEntry } from "../services/clioService";
 import { createClioTimeEntry } from "../config/createClioTimeEntry";
 
 interface BillableData {
@@ -16,7 +16,7 @@ export const createTimeEntry = async (req: Request, res: Response) => {
   console.log("Body:", req.body);
 
   try {
-    const { billableData } = req.body as { billableData: BillableData };
+    const { billableData } = req.body as { billableData: any };
     if (!billableData) {
       console.error("❌ No billableData received!");
       return res.status(400).json({ error: "No billableData provided" });
@@ -24,23 +24,21 @@ export const createTimeEntry = async (req: Request, res: Response) => {
 
     console.log("[BillingController] Billable Data:", billableData);
 
-    // Get Clio token
     const accessToken = await getClioToken();
     console.log("[BillingController] Clio Access Token:", accessToken);
     if (!accessToken) return res.status(401).json({ error: "No valid Clio access token found" });
 
-    // Map payload for Clio API
     const timeEntryPayload = {
       description: billableData.description,
       duration: billableData.durationInSeconds,
-      matter_id: billableData.matterId, // ✅ Clio expects matter_id
-      ...(billableData.date && { date: billableData.date }),
+      date: billableData.date,
+      matterId: billableData.matterId,
+      userId: billableData.userId,
     };
 
     console.log("[BillingController] Payload sent to Clio:", timeEntryPayload);
 
-    // Call Clio API
-    const result = await createClioTimeEntry(accessToken, timeEntryPayload);
+    const result = await logTimeEntry(accessToken, timeEntryPayload);
     console.log("[BillingController] Clio Response:", result);
 
     res.json({ success: true, timeEntry: result });
