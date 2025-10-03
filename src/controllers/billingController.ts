@@ -1,50 +1,51 @@
-// src/controllers/billingController.ts
 import { Request, Response } from "express";
-import { getClioToken, logTimeEntry } from "../services/clioService";
+import { getClioToken } from "../services/clioService";
+import { createClioTimeEntry } from "../config/createClioTimeEntry";
 
 interface BillableData {
   matterId: string;
-  userId?: string;
   durationInSeconds: number;
   description: string;
   date: string;
+  userId?: string;
 }
 
 export const createTimeEntry = async (req: Request, res: Response) => {
-  console.log("Incoming headers:", req.headers);
-  console.log("Incoming body:", req.body);
+  console.log("=== Incoming Request ===");
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
 
   try {
     const { billableData } = req.body as { billableData: BillableData };
-
     if (!billableData) {
-      return res.status(400).json({ error: "No billable data provided" });
+      console.error("❌ No billableData received!");
+      return res.status(400).json({ error: "No billableData provided" });
     }
 
     console.log("[BillingController] Billable Data:", billableData);
 
-    // ✅ Clio integration
+    // Get Clio token
     const accessToken = await getClioToken();
-    if (!accessToken) {
-      return res.status(401).json({ error: "No valid Clio access token found" });
-    }
+    console.log("[BillingController] Clio Access Token:", accessToken);
+    if (!accessToken) return res.status(401).json({ error: "No valid Clio access token found" });
 
-    console.log("[BillingController] Access Token retrieved");
-
+    // Map payload for Clio API
     const timeEntryPayload = {
       description: billableData.description,
       duration: billableData.durationInSeconds,
-      date: billableData.date,
-      matterId: billableData.matterId,
-      userId: billableData.userId,
+      matter_id: billableData.matterId, // ✅ Clio expects matter_id
+      ...(billableData.date && { date: billableData.date }),
     };
 
-    const result = await logTimeEntry(accessToken, timeEntryPayload);
+    console.log("[BillingController] Payload sent to Clio:", timeEntryPayload);
+
+    // Call Clio API
+    const result = await createClioTimeEntry(accessToken, timeEntryPayload);
     console.log("[BillingController] Clio Response:", result);
 
     res.json({ success: true, timeEntry: result });
-  } catch (err: unknown) {
-    console.error("[BillingController] Error logging billable:", err);
-    res.status(500).json({ error: (err as Error).message || "Failed to log time entry" });
+  } catch (err: any) {
+    console.error("[BillingController] Error:", err.response?.data || err.message || err);
+    res.status(500).json({ error: err.response?.data || err.message || "Failed to log time entry" });
   }
 };

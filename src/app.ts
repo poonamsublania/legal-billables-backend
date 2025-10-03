@@ -5,6 +5,8 @@ import express, { Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import "./config/db";
+import { createTimeEntry } from "./controllers/billingController";
+
 
 import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
@@ -34,7 +36,12 @@ app.use(cors({
 }));
 
 // Middlewares
-app.use(bodyParser.json());
+app.use(express.json());
+
+
+// Routes
+app.get("/api/billing/ping", (_req, res) => res.json({ message: "Billing service is alive 🚀" }));
+app.post("/api/billing/time-entry", createTimeEntry);
 
 
 console.log("📩 GPT routes mounted at /api/gpt");
@@ -87,4 +94,3 @@ app.listen(PORT, "0.0.0.0", () => {
   }
 });
 
-console.log("Registering billing routes...");

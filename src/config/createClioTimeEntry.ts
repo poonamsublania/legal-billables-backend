@@ -1,17 +1,14 @@
-// src/config/createClioTimeEntry.ts
 import axios from "axios";
 
 const API_BASE_URL = "https://app.clio.com/api/v4";
 
-/**
- * Create a time entry in Clio
- */
 export async function createClioTimeEntry(
   accessToken: string,
   data: {
     description: string;
     duration: number;
     matter_id: string;
+    date?: string;
   }
 ) {
   try {
@@ -22,14 +19,17 @@ export async function createClioTimeEntry(
         duration: data.duration,
         matter_id: data.matter_id,
         billable: true,
+        ...(data.date && { date: data.date }),
       },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
       }
     );
 
+    console.log("[createClioTimeEntry] Success:", response.data);
     return response.data;
   } catch (error: any) {
     console.error("🔴 Failed to create Clio time entry:", error.response?.data || error.message);

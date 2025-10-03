@@ -1,4 +1,3 @@
-// src/services/clioService.ts
 import axios from "axios";
 import ClioTokenModel, { IClioToken } from "../models/clioToken";
 
@@ -6,15 +5,17 @@ import ClioTokenModel, { IClioToken } from "../models/clioToken";
  * Get Clio access token from DB
  */
 export const getClioToken = async (): Promise<string | null> => {
-  const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" }) as IClioToken;
-  if (!tokenDoc) return null;
+  const tokenDoc = (await ClioTokenModel.findOne({ _id: "singleton" })) as IClioToken;
+  if (!tokenDoc) {
+    console.error("[ClioService] No token found in DB");
+    return null;
+  }
+  console.log("[ClioService] Retrieved access token from DB");
   return tokenDoc.accessToken;
 };
 
 /**
  * Push time entry to Clio API
- * @param accessToken Clio API access token
- * @param payload Object containing: description, duration, date, matterId, userId
  */
 export const logTimeEntry = async (
   accessToken: string,
@@ -36,10 +37,12 @@ export const logTimeEntry = async (
         duration,
         date,
         matter_id: matterId,
-        user_id: userId || undefined,
+        ...(userId ? { user_id: userId } : {}),
       },
     },
   };
+
+  console.log("[ClioService] Sending payload to Clio:", JSON.stringify(data, null, 2));
 
   try {
     const response = await axios.post("https://app.clio.com/api/v4/time_entries", data, {
@@ -48,9 +51,10 @@ export const logTimeEntry = async (
         "Content-Type": "application/json",
       },
     });
+    console.log("[ClioService] Clio response:", response.data);
     return response.data;
   } catch (err: any) {
-    console.error("[ClioService] Error pushing time entry:", err.response?.data || err.message);
-    throw new Error(err.response?.data?.error || "Failed to push time entry to Clio");
+    console.error("[ClioService] Failed to push time entry:", err.response?.data || err.message);
+    throw new Error(err.response?.data?.error || err.message || "Failed to push time entry to Clio");
   }
 };
