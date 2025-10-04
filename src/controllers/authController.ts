@@ -30,16 +30,16 @@ export const handleClioCallback = async (req: Request, res: Response) => {
 
     const { access_token, refresh_token, expires_in } = response.data;
 
-    // Calculate expiry date
-    const expiresAt = new Date(Date.now() + expires_in * 1000);
+    // Calculate expiry timestamp
+    const expiresAt = Date.now() + expires_in * 1000;
 
-    // ⚡ Save/Update token in MongoDB for this user (replace "demoUser" with real userId from your auth system)
+    // ⚡ Save token in MongoDB using singleton pattern
     const savedToken = await ClioTokenModel.findOneAndUpdate(
-      { userId: "demoUser" }, // 👈 TODO: replace with logged-in user ID
+      { _id: "singleton" }, // Always use single document
       {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresAt,
+        clioAccessToken: access_token,
+        clioRefreshToken: refresh_token,
+        clioTokenExpiry: expiresAt,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );

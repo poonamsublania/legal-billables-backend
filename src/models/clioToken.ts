@@ -8,6 +8,7 @@ export interface IClioToken extends Document {
   clioAccessToken?: string; // original fields
   clioRefreshToken?: string;
   clioTokenExpiry?: number;
+  userId?: string;
 }
 
 const ClioTokenSchema = new Schema({
@@ -20,6 +21,7 @@ const ClioTokenSchema = new Schema({
   clioAccessToken: { type: String },
   clioRefreshToken: { type: String },
   clioTokenExpiry: { type: Number },
+  userId: { type: String },
 });
 
 export default mongoose.model<IClioToken>("ClioToken", ClioTokenSchema);
