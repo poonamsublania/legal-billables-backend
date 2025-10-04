@@ -24,7 +24,7 @@ export const getClioToken = async (): Promise<string | null> => {
     console.log("[ClioService] ✅ Retrieved access token from DB");
     return accessToken;
   } catch (err: any) {
-    console.error("[ClioService] 🔴 Error fetching Clio token:", err.message || err);
+    console.error("[ClioService] Error fetching Clio token:", err.message || err);
     return null;
   }
 };
@@ -39,7 +39,6 @@ export const logTimeEntry = async (
     durationInSeconds: number;
     date: string;
     matterId: string;
-    userId?: string;
   }
 ) => {
   try {
@@ -48,7 +47,7 @@ export const logTimeEntry = async (
       "Content-Type": "application/json",
     };
 
-    // Clio API expects duration in seconds and matter id inside "matter" object
+    // Correct payload for Clio API
     const payload = {
       data: {
         type: "TimeEntry",
@@ -57,16 +56,14 @@ export const logTimeEntry = async (
           duration: billableData.durationInSeconds,
           date: billableData.date,
           billable: true,
-          ...(billableData.userId ? { user_id: billableData.userId } : {}),
-          matter: {
-            id: Number(billableData.matterId), // Clio expects numeric matter ID
-          },
+          matter_id: Number(billableData.matterId),
         },
       },
     };
 
     console.log("[ClioService] 📤 Sending payload to Clio:", JSON.stringify(payload, null, 2));
 
+    // Correct endpoint for time entries
     const response = await axios.post("https://app.clio.com/api/v4/time_entries", payload, { headers });
 
     console.log("[ClioService] ✅ Successfully pushed time entry:", response.data);
