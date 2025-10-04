@@ -14,20 +14,14 @@ export const getClioToken = async (): Promise<string | null> => {
       return null;
     }
 
-    console.log("[ClioService] ✅ Retrieved access token from DB");
-    console.log("[ClioService] Token document:", tokenDoc);
-
-    // ✅ fix: use correct field name
-    const accessToken =
-      tokenDoc.accessToken ||
-      tokenDoc.clioAccessToken ||
-      (tokenDoc as any).token ||
-      null;
-
+    // Use the correct field from your DB
+    const accessToken = tokenDoc.clioAccessToken || null;
     if (!accessToken) {
-      console.error("[ClioService] ⚠️ accessToken field missing in tokenDoc!");
+      console.error("[ClioService] ⚠️ clioAccessToken field is missing in DB document");
+      return null;
     }
 
+    console.log("[ClioService] ✅ Retrieved access token from DB");
     return accessToken;
   } catch (err: any) {
     console.error("[ClioService] Error fetching Clio token:", err.message || err);
@@ -40,56 +34,44 @@ export const getClioToken = async (): Promise<string | null> => {
  */
 export const logTimeEntry = async (
   accessToken: string,
-  payload: {
+  billableData: {
     description: string;
-    duration: number;
+    durationInSeconds: number;
     date: string;
     matterId: string;
-    userId?: string;
   }
 ) => {
-  const { description, duration, date, matterId, userId } = payload;
-
-  // ✅ Correct payload format for Clio API
-  const data = {
-    data: {
-      type: "time_entry", // ✅ lowercase
-      attributes: {
-        description,
-        duration,
-        date,
-        matter_id: Number(matterId), // ✅ make sure it's number
-        billable: true,
-        ...(userId ? { user_id: userId } : {}),
-      },
-    },
-  };
-
-  console.log("[ClioService] 📤 Sending payload to Clio:", JSON.stringify(data, null, 2));
-
   try {
-    // ✅ Correct endpoint (.json required)
-    const response = await axios.post("https://app.clio.com/api/v4/time_entries.json", data, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      timeout: 10000,
-    });
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
 
-    console.log("[ClioService] ✅ Clio response:", response.data);
+    // Correct payload for Clio API
+    const payload = {
+      data: {
+        date: billableData.date,
+        description: billableData.description,
+        duration: billableData.durationInSeconds,
+        billable: true,
+        matter: {
+          id: Number(billableData.matterId),
+        },
+      },
+    };
+
+    console.log("[ClioService] 📤 Sending payload to Clio:", JSON.stringify(payload, null, 2));
+
+    // Correct endpoint for activities/time entries
+    const response = await axios.post("https://app.clio.com/api/v4/activities.json", payload, { headers });
+
+    console.log("[ClioService] ✅ Successfully pushed time entry:", response.data);
     return response.data;
-  } catch (err: any) {
+  } catch (error: any) {
     console.error(
       "[ClioService] 🔴 Failed to push time entry:",
-      err.response?.data || err.message || err
+      error.response?.data || error.message || error
     );
-
-    throw new Error(
-      err.response?.data?.error ||
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to push time entry to Clio"
-    );
+    throw error;
   }
 };
