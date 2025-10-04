@@ -9,12 +9,19 @@ import ClioTokenModel, { IClioToken } from "../models/clioToken";
 export const getClioToken = async (): Promise<string | null> => {
   try {
     const tokenDoc = (await ClioTokenModel.findOne({ _id: "singleton" })) as IClioToken | null;
+
     if (!tokenDoc) {
       console.error("[ClioService] ❌ No token found in DB (singleton)");
       return null;
     }
 
     console.log("[ClioService] ✅ Retrieved access token from DB");
+    console.log("[ClioService] Token document:", JSON.stringify(tokenDoc, null, 2)); // 👈 add this
+
+    if (!tokenDoc.accessToken) {
+      console.error("[ClioService] ⚠️ accessToken field missing in tokenDoc!");
+    }
+
     return tokenDoc.accessToken;
   } catch (err: any) {
     console.error("[ClioService] Error fetching Clio token:", err.message || err);
