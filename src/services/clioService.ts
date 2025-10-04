@@ -6,23 +6,65 @@ import ClioTokenModel, { IClioToken } from "../models/clioToken";
  * Get Clio access token from DB
  * Handles "singleton" string _id safely
  */
+// src/services/clioService.ts (replace getClioToken)
 export const getClioToken = async (): Promise<string | null> => {
   try {
-    const tokenDoc = (await ClioTokenModel.findOne({ _id: "singleton" })) as IClioToken | null;
+    // fetch raw doc
+    const tokenDoc: any = await ClioTokenModel.findOne({ _id: "singleton" });
 
     if (!tokenDoc) {
       console.error("[ClioService] ❌ No token found in DB (singleton)");
       return null;
     }
 
-    console.log("[ClioService] ✅ Retrieved access token from DB");
-    console.log("[ClioService] Token document:", JSON.stringify(tokenDoc, null, 2)); // 👈 add this
+    // print full doc for debugging
+    console.log("[ClioService] Token document:", JSON.stringify(tokenDoc.toObject ? tokenDoc.toObject() : tokenDoc, null, 2));
 
-    if (!tokenDoc.accessToken) {
-      console.error("[ClioService] ⚠️ accessToken field missing in tokenDoc!");
+    // accept multiple possible field names used across your history
+    const accessToken =
+      tokenDoc.accessToken ||
+      tokenDoc.clioAccessToken ||
+      tokenDoc.clio_access_token ||
+      tokenDoc.clioAccess_Token;
+
+    const refreshToken =
+      tokenDoc.refreshToken ||
+      tokenDoc.clioRefreshToken ||
+      tokenDoc.clio_refresh_token;
+
+    const expiryRaw =
+      tokenDoc.expiresAt ||
+      tokenDoc.clioTokenExpiry ||
+      tokenDoc.clio_token_expiry ||
+      tokenDoc.expires_at;
+
+    const expiresAt = expiryRaw
+      ? typeof expiryRaw === "number"
+        ? new Date(expiryRaw)
+        : new Date(expiryRaw)
+      : null;
+
+    if (!accessToken) {
+      console.error("[ClioService] ⚠️ No access token found in tokenDoc fields");
+      return null;
     }
 
-    return tokenDoc.accessToken;
+    // OPTIONAL: normalize and persist the canonical fields so future reads are consistent
+    // (only run this if you want one-time automatic migration)
+    try {
+      let changed = false;
+      if (!tokenDoc.accessToken && accessToken) { tokenDoc.accessToken = accessToken; changed = true; }
+      if (!tokenDoc.refreshToken && refreshToken) { tokenDoc.refreshToken = refreshToken; changed = true; }
+      if (!tokenDoc.expiresAt && expiresAt) { tokenDoc.expiresAt = expiresAt; changed = true; }
+      if (changed) {
+        await tokenDoc.save();
+        console.log("[ClioService] ✅ Normalized tokenDoc to canonical field names");
+      }
+    } catch (saveErr) {
+      console.warn("[ClioService] ⚠️ Failed to normalize tokenDoc (non-fatal):", saveErr);
+    }
+
+    return accessToken;
   } catch (err: any) {
     console.error("[ClioService] Error fetching Clio token:", err.message || err);
     return null;

@@ -1,21 +1,25 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IClioToken extends Document {
-  _id: string; // always "singleton"
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
+  _id: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: Date;
+  clioAccessToken?: string; // original fields
+  clioRefreshToken?: string;
+  clioTokenExpiry?: number;
 }
 
-const ClioTokenSchema = new Schema<IClioToken>({
+const ClioTokenSchema = new Schema({
   _id: { type: String, default: "singleton" },
-  accessToken: { type: String, required: true },
-  refreshToken: { type: String, required: true },
-  expiresAt: { type: Date, required: true },
-});
+  accessToken: { type: String },
+  refreshToken: { type: String },
+  expiresAt: { type: Date },
 
-// Force Mongoose to use camelCase keys, not snake_case
-ClioTokenSchema.set("toJSON", { virtuals: true });
-ClioTokenSchema.set("toObject", { virtuals: true });
+  // preserve old fields too
+  clioAccessToken: { type: String },
+  clioRefreshToken: { type: String },
+  clioTokenExpiry: { type: Number },
+});
 
 export default mongoose.model<IClioToken>("ClioToken", ClioTokenSchema);
