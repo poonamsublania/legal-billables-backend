@@ -24,7 +24,7 @@ export const getClioToken = async (): Promise<string | null> => {
     console.log("[ClioService] ✅ Retrieved access token from DB");
     return accessToken;
   } catch (err: any) {
-    console.error("[ClioService] Error fetching Clio token:", err.message || err);
+    console.error("[ClioService] 🔴 Error fetching Clio token:", err.message || err);
     return null;
   }
 };
@@ -39,6 +39,7 @@ export const logTimeEntry = async (
     durationInSeconds: number;
     date: string;
     matterId: string;
+    userId?: string;
   }
 ) => {
   try {
@@ -47,23 +48,26 @@ export const logTimeEntry = async (
       "Content-Type": "application/json",
     };
 
-    // Correct payload for Clio API
+    // Clio API expects duration in seconds and matter id inside "matter" object
     const payload = {
       data: {
-        date: billableData.date,
-        description: billableData.description,
-        duration: billableData.durationInSeconds,
-        billable: true,
-        matter: {
-          id: Number(billableData.matterId),
+        type: "TimeEntry",
+        attributes: {
+          description: billableData.description,
+          duration: billableData.durationInSeconds,
+          date: billableData.date,
+          billable: true,
+          ...(billableData.userId ? { user_id: billableData.userId } : {}),
+          matter: {
+            id: Number(billableData.matterId), // Clio expects numeric matter ID
+          },
         },
       },
     };
 
     console.log("[ClioService] 📤 Sending payload to Clio:", JSON.stringify(payload, null, 2));
 
-    // Correct endpoint for activities/time entries
-    const response = await axios.post("https://app.clio.com/api/v4/activities.json", payload, { headers });
+    const response = await axios.post("https://app.clio.com/api/v4/time_entries", payload, { headers });
 
     console.log("[ClioService] ✅ Successfully pushed time entry:", response.data);
     return response.data;
@@ -72,6 +76,11 @@ export const logTimeEntry = async (
       "[ClioService] 🔴 Failed to push time entry:",
       error.response?.data || error.message || error
     );
-    throw error;
+    throw new Error(
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to push time entry to Clio"
+    );
   }
 };
