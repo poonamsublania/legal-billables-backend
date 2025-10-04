@@ -9,7 +9,6 @@ import ClioTokenModel, { IClioToken } from "../models/clioToken";
 export const getClioToken = async (): Promise<string | null> => {
   try {
     const tokenDoc = (await ClioTokenModel.findOne({ _id: "singleton" })) as IClioToken | null;
-
     if (!tokenDoc) {
       console.error("[ClioService] ❌ No token found in DB (singleton)");
       return null;
