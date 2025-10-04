@@ -4,64 +4,28 @@ import ClioTokenModel, { IClioToken } from "../models/clioToken";
 
 /**
  * Get Clio access token from DB
- * Handles "singleton" string _id safely
  */
-// src/services/clioService.ts (replace getClioToken)
 export const getClioToken = async (): Promise<string | null> => {
   try {
-    // fetch raw doc
-    const tokenDoc: any = await ClioTokenModel.findOne({ _id: "singleton" });
+    const tokenDoc = (await ClioTokenModel.findOne({ _id: "singleton" })) as IClioToken | null;
 
     if (!tokenDoc) {
       console.error("[ClioService] ❌ No token found in DB (singleton)");
       return null;
     }
 
-    // print full doc for debugging
-    console.log("[ClioService] Token document:", JSON.stringify(tokenDoc.toObject ? tokenDoc.toObject() : tokenDoc, null, 2));
+    console.log("[ClioService] ✅ Retrieved access token from DB");
+    console.log("[ClioService] Token document:", tokenDoc);
 
-    // accept multiple possible field names used across your history
+    // ✅ fix: use correct field name
     const accessToken =
       tokenDoc.accessToken ||
       tokenDoc.clioAccessToken ||
-      tokenDoc.clio_access_token ||
-      tokenDoc.clioAccess_Token;
-
-    const refreshToken =
-      tokenDoc.refreshToken ||
-      tokenDoc.clioRefreshToken ||
-      tokenDoc.clio_refresh_token;
-
-    const expiryRaw =
-      tokenDoc.expiresAt ||
-      tokenDoc.clioTokenExpiry ||
-      tokenDoc.clio_token_expiry ||
-      tokenDoc.expires_at;
-
-    const expiresAt = expiryRaw
-      ? typeof expiryRaw === "number"
-        ? new Date(expiryRaw)
-        : new Date(expiryRaw)
-      : null;
+      (tokenDoc as any).token ||
+      null;
 
     if (!accessToken) {
-      console.error("[ClioService] ⚠️ No access token found in tokenDoc fields");
-      return null;
-    }
-
-    // OPTIONAL: normalize and persist the canonical fields so future reads are consistent
-    // (only run this if you want one-time automatic migration)
-    try {
-      let changed = false;
-      if (!tokenDoc.accessToken && accessToken) { tokenDoc.accessToken = accessToken; changed = true; }
-      if (!tokenDoc.refreshToken && refreshToken) { tokenDoc.refreshToken = refreshToken; changed = true; }
-      if (!tokenDoc.expiresAt && expiresAt) { tokenDoc.expiresAt = expiresAt; changed = true; }
-      if (changed) {
-        await tokenDoc.save();
-        console.log("[ClioService] ✅ Normalized tokenDoc to canonical field names");
-      }
-    } catch (saveErr) {
-      console.warn("[ClioService] ⚠️ Failed to normalize tokenDoc (non-fatal):", saveErr);
+      console.error("[ClioService] ⚠️ accessToken field missing in tokenDoc!");
     }
 
     return accessToken;
@@ -86,16 +50,17 @@ export const logTimeEntry = async (
 ) => {
   const { description, duration, date, matterId, userId } = payload;
 
+  // ✅ Correct payload format for Clio API
   const data = {
     data: {
-      type: "TimeEntry",
+      type: "time_entry", // ✅ lowercase
       attributes: {
         description,
         duration,
         date,
-        matter_id: matterId,
+        matter_id: Number(matterId), // ✅ make sure it's number
+        billable: true,
         ...(userId ? { user_id: userId } : {}),
-        billable: true, // always mark as billable
       },
     },
   };
@@ -103,12 +68,13 @@ export const logTimeEntry = async (
   console.log("[ClioService] 📤 Sending payload to Clio:", JSON.stringify(data, null, 2));
 
   try {
-    const response = await axios.post("https://app.clio.com/api/v4/time_entries", data, {
+    // ✅ Correct endpoint (.json required)
+    const response = await axios.post("https://app.clio.com/api/v4/time_entries.json", data, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      timeout: 10000, // 10s timeout to avoid hanging
+      timeout: 10000,
     });
 
     console.log("[ClioService] ✅ Clio response:", response.data);
@@ -121,9 +87,9 @@ export const logTimeEntry = async (
 
     throw new Error(
       err.response?.data?.error ||
-      err.response?.data?.message ||
-      err.message ||
-      "Failed to push time entry to Clio"
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to push time entry to Clio"
     );
   }
 };
