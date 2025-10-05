@@ -1,20 +1,20 @@
 import axios from "axios";
 import ClioTokenModel from "../models/clioToken";
 
-const CLIO_BASE_URL = process.env.CLIO_BASE_URL || "https://app.clio.com";
+// Remove trailing slashes from base URL
+const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
 
 /**
- * 🧠 Utility: Check if token expired
+ * 🧠 Check if token expired
  */
 const isTokenExpired = (expiresAt?: number | Date) => {
   if (!expiresAt) return true;
-  const expiry =
-    typeof expiresAt === "number" ? expiresAt * 1000 : new Date(expiresAt).getTime();
+  const expiry = typeof expiresAt === "number" ? expiresAt * 1000 : new Date(expiresAt).getTime();
   return Date.now() >= expiry;
 };
 
 /**
- * 🔄 Refresh Clio Access Token using stored Refresh Token
+ * 🔄 Refresh Clio access token
  */
 export const refreshClioToken = async (): Promise<string | null> => {
   try {
@@ -33,28 +33,23 @@ export const refreshClioToken = async (): Promise<string | null> => {
       refresh_token: tokenDoc.clioRefreshToken,
     });
 
-    const newAccess = response.data.access_token;
-    const newRefresh = response.data.refresh_token;
-    const expiresIn = response.data.expires_in;
+    const { access_token, refresh_token, expires_in } = response.data;
 
-    tokenDoc.clioAccessToken = newAccess;
-    tokenDoc.clioRefreshToken = newRefresh;
-    tokenDoc.clioTokenExpiry = Math.floor(Date.now() / 1000) + expiresIn;
+    tokenDoc.clioAccessToken = access_token;
+    tokenDoc.clioRefreshToken = refresh_token;
+    tokenDoc.clioTokenExpiry = Math.floor(Date.now() / 1000) + expires_in;
     await tokenDoc.save();
 
     console.log("[ClioService] ✅ Access token refreshed successfully");
-    return newAccess;
+    return access_token;
   } catch (error: any) {
-    console.error(
-      "[ClioService] 🔴 Failed to refresh token:",
-      error.response?.data || error.message
-    );
+    console.error("[ClioService] 🔴 Failed to refresh token:", error.response?.data || error.message);
     return null;
   }
 };
 
 /**
- * 🧾 Get valid Clio access token (auto-refresh if needed)
+ * 🧾 Get valid Clio token (auto-refresh if expired)
  */
 export const getClioToken = async (): Promise<string | null> => {
   try {
@@ -84,7 +79,7 @@ export const getClioToken = async (): Promise<string | null> => {
 };
 
 /**
- * 🕒 Push time entry to Clio API
+ * 🕒 Push time entry to Clio
  */
 export const logTimeEntry = async (
   accessToken: string,
@@ -96,10 +91,10 @@ export const logTimeEntry = async (
   }
 ) => {
   try {
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    };
+    // Validate required fields
+    if (!billableData.matterId || !billableData.description || !billableData.date || !billableData.durationInSeconds) {
+      throw new Error("Missing required billableData fields");
+    }
 
     const payload = {
       data: {
@@ -118,21 +113,36 @@ export const logTimeEntry = async (
     console.log("[ClioService] 🌐 POST", url);
     console.log("[ClioService] 📤 Payload:", JSON.stringify(payload, null, 2));
 
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    };
+
     const response = await axios.post(url, payload, { headers });
 
     console.log("[ClioService] ✅ Successfully pushed time entry:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error(
-      "[ClioService] 🔴 Failed to push time entry:",
-      error.response?.status,
-      error.response?.data || error.message
-    );
+    console.error("[ClioService] 🔴 Failed to push time entry:", error.response?.status, error.response?.data || error.message);
     throw new Error(
       error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to push time entry to Clio"
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to push time entry to Clio"
     );
   }
+};
+
+/**
+ * 🔐 Safe wrapper: Get token and log time entry in one call
+ */
+export const logTimeEntrySafe = async (billableData: {
+  description: string;
+  durationInSeconds: number;
+  date: string;
+  matterId: string;
+}) => {
+  const token = await getClioToken();
+  if (!token) throw new Error("No valid Clio token available");
+  return logTimeEntry(token, billableData);
 };
