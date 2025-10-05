@@ -109,7 +109,7 @@ export const logTimeEntry = async (
       },
     };
 
-    const url = `${CLIO_BASE_URL}/api/v4/time_entries`;
+    const url = `${CLIO_BASE_URL}/api/v4/time_entries.json`;
     console.log("[ClioService] 🌐 POST", url);
     console.log("[ClioService] 📤 Payload:", JSON.stringify(payload, null, 2));
 
