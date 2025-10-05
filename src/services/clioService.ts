@@ -1,4 +1,3 @@
-// src/services/clioService.ts
 import axios from "axios";
 import ClioTokenModel from "../models/clioToken";
 
@@ -6,7 +5,7 @@ import ClioTokenModel from "../models/clioToken";
 const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
 
 /**
- * 🧠 Check if token expired
+ * 🧠 Check if token expired!!
  */
 const isTokenExpired = (expiresAt?: number | Date) => {
   if (!expiresAt) return true;
