@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const CLIO_BASE_URL = "https://app.clio.com";
-const API_BASE_URL = "https://app.clio.com/api/v4";
+const API_BASE_URL = "https://app.clio.com";
 
 /**
  * Helper: Pretty print API errors
