@@ -12,7 +12,7 @@ const isTokenExpired = (expiresAt?: number | Date) => {
   if (!expiresAt) return true;
   const expiry =
     typeof expiresAt === "number"
-      ? expiresAt * 1000              
+      ? expiresAt * 1000
       : new Date(expiresAt).getTime();
   return Date.now() >= expiry;
 };
@@ -115,7 +115,7 @@ export const logTimeEntry = async (
       data: {
         type: "time_entries",
         attributes: {
-          description: billableData.description,
+          note: billableData.description, // <-- fixed here
           date: billableData.date,
           quantity: billableData.durationInSeconds / 3600,
           billable: true,
@@ -175,4 +175,3 @@ export const logTimeEntrySafe = async (billableData: {
   if (!token) throw new Error("No valid Clio token available");
   return logTimeEntry(token, billableData);
 };
-
