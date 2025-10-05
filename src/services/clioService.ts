@@ -79,7 +79,7 @@ export const getClioToken = async (): Promise<string | null> => {
 };
 
 /**
- * 🕒 Push time entry to Clio
+ * 🕒 Push time entry to Clio (correct payload & URL)
  */
 export const logTimeEntry = async (
   accessToken: string,
@@ -96,20 +96,28 @@ export const logTimeEntry = async (
       throw new Error("Missing required billableData fields");
     }
 
+    // Correct payload for Clio API
     const payload = {
       data: {
-        type: "TimeEntry",
+        type: "activities",       // must be "activities"
         attributes: {
+          type: "TimeEntry",      // must be "TimeEntry"
           description: billableData.description,
-          duration: billableData.durationInSeconds,
           date: billableData.date,
-          billable: true,
-          matter_id: Number(billableData.matterId),
+          quantity: billableData.durationInSeconds / 3600, // seconds → hours
+        },
+        relationships: {
+          matter: {
+            data: {
+              id: billableData.matterId,
+              type: "matters",
+            },
+          },
         },
       },
     };
 
-    const url = `${CLIO_BASE_URL}/api/v4/time_entries.json`;
+    const url = `${CLIO_BASE_URL}/api/v4/activities.json`;
     console.log("[ClioService] 🌐 POST", url);
     console.log("[ClioService] 📤 Payload:", JSON.stringify(payload, null, 2));
 
