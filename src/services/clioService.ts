@@ -1,7 +1,8 @@
+// src/services/clioService.ts
 import axios from "axios";
 import ClioTokenModel from "../models/clioToken";
 
-// Remove trailing slashes from base URL
+// Base URL for Clio API
 const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
 
 /**
@@ -79,7 +80,7 @@ export const getClioToken = async (): Promise<string | null> => {
 };
 
 /**
- * 🕒 Push time entry to Clio (correct payload & URL)
+ * 🕒 Push time entry to Clio
  */
 export const logTimeEntry = async (
   accessToken: string,
@@ -91,20 +92,18 @@ export const logTimeEntry = async (
   }
 ) => {
   try {
-    // Validate required fields
     if (!billableData.matterId || !billableData.description || !billableData.date || !billableData.durationInSeconds) {
       throw new Error("Missing required billableData fields");
     }
 
-    // Correct payload for Clio API
     const payload = {
       data: {
-        type: "activities",       // must be "activities"
+        type: "TimeEntry",
         attributes: {
-          type: "TimeEntry",      // must be "TimeEntry"
           description: billableData.description,
           date: billableData.date,
-          quantity: billableData.durationInSeconds / 3600, // seconds → hours
+          quantity: billableData.durationInSeconds / 3600,
+          billable: true,
         },
         relationships: {
           matter: {
@@ -117,7 +116,7 @@ export const logTimeEntry = async (
       },
     };
 
-    const url = `${CLIO_BASE_URL}/api/v4/activities.json`;
+    const url = `${CLIO_BASE_URL}/api/v4/time_entries`;
     console.log("[ClioService] 🌐 POST", url);
     console.log("[ClioService] 📤 Payload:", JSON.stringify(payload, null, 2));
 
@@ -127,11 +126,15 @@ export const logTimeEntry = async (
     };
 
     const response = await axios.post(url, payload, { headers });
-
     console.log("[ClioService] ✅ Successfully pushed time entry:", response.data);
+
     return response.data;
   } catch (error: any) {
-    console.error("[ClioService] 🔴 Failed to push time entry:", error.response?.status, error.response?.data || error.message);
+    console.error(
+      "[ClioService] 🔴 Failed to push time entry:",
+      error.response?.status,
+      error.response?.data || error.message
+    );
     throw new Error(
       error.response?.data?.error ||
       error.response?.data?.message ||
