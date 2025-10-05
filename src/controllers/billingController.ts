@@ -1,5 +1,6 @@
+// src/controllers/billingController.ts
 import { Request, Response } from "express";
-import { logTimeEntry, pingClio } from "../services/clioService";
+import { getClioToken, logTimeEntry } from "../services/clioService";
 
 interface BillableData {
   matterId: string;
@@ -8,23 +9,10 @@ interface BillableData {
   date: string;
 }
 
-/**
- * Test Clio connection
- */
-export const pingBillingService = async (_req: Request, res: Response) => {
-  try {
-    const result = await pingClio();
-    res.json({ success: true, message: "Billing service is alive 🚀", data: result });
-  } catch (err: unknown) {
-    console.error("[BillingController] 🔴 Clio ping failed:", err);
-    res.status(500).json({ error: (err as Error).message || "Clio ping failed" });
-  }
-};
-
-/**
- * Create a new time entry in Clio
- */
 export const createTimeEntry = async (req: Request, res: Response) => {
+  console.log("Incoming headers:", req.headers);
+  console.log("Incoming body:", req.body);
+
   try {
     const { billableData } = req.body as { billableData: BillableData };
 
@@ -34,14 +22,23 @@ export const createTimeEntry = async (req: Request, res: Response) => {
 
     console.log("[BillingController] Billable Data:", billableData);
 
-    // Push time entry (token handled internally)
-    const result = await logTimeEntry(billableData);
+    // Get Clio token
+    const accessToken = await getClioToken();
 
-    console.log("[BillingController] ✅ Clio Response:", result);
+    if (!accessToken) {
+      return res.status(401).json({ error: "No valid Clio access token found" });
+    }
+
+    console.log("[BillingController] Clio Access Token retrieved");
+
+    // Push time entry
+    const result = await logTimeEntry(accessToken, billableData);
+
+    console.log("[BillingController] Clio Response:", result);
 
     res.json({ success: true, timeEntry: result });
   } catch (err: unknown) {
-    console.error("[BillingController] 🔴 Error logging billable:", err);
+    console.error("[BillingController] Error logging billable:", err);
     res.status(500).json({ error: (err as Error).message || "Failed to log time entry" });
   }
 };
