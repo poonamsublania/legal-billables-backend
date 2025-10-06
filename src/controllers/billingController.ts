@@ -1,47 +1,30 @@
-// src/controllers/billingController.ts
 import { Request, Response } from "express";
-import { logTimeEntrySafe } from "../services/clioService";
-
-interface BillableData {
-  matterId: string;
-  durationInSeconds: number;
-  description: string; // will map to 'note' in Clio
-  date: string; // YYYY-MM-DD
-}
+import { getClioToken, logTimeEntry } from "../services/clioService";
 
 export const createTimeEntry = async (req: Request, res: Response) => {
-  console.log("[BillingController] Incoming headers:", req.headers);
-  console.log("[BillingController] Incoming body:", req.body);
-
   try {
-    const { billableData } = req.body as { billableData: BillableData };
+    const { billableData } = req.body;
 
     if (!billableData) {
-      return res.status(400).json({ error: "No billable data provided" });
+      return res.status(400).json({ error: "Missing billableData" });
     }
 
     const { matterId, description, durationInSeconds, date } = billableData;
 
     if (!matterId || !description || !durationInSeconds || !date) {
-      return res.status(400).json({ error: "Missing required billableData fields" });
+      return res.status(400).json({ error: "Incomplete billable data" });
     }
 
-    console.log("[BillingController] Validated Billable Data:", billableData);
+    const token = await getClioToken();
+    if (!token) {
+      return res.status(401).json({ error: "No valid Clio token found" });
+    }
 
-    // Log time entry using safe wrapper (handles token refresh)
-    const result = await logTimeEntrySafe(billableData);
-
-    console.log("[BillingController] Clio Response:", result);
+    const result = await logTimeEntry(token, billableData);
 
     res.json({ success: true, timeEntry: result });
-  } catch (err: unknown) {
-    console.error("[BillingController] 🔴 Error logging billable:", err);
-
-    res.status(500).json({
-      error:
-        (err as any)?.response?.data?.error ||
-        (err as any)?.message ||
-        "Failed to log time entry",
-    });
+  } catch (err: any) {
+    console.error("[BillingController] Error:", err.message);
+    res.status(500).json({ error: err.message });
   }
 };
