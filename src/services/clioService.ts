@@ -2,18 +2,14 @@
 import axios from "axios";
 import ClioTokenModel from "../models/clioToken";
 
-const CLIO_BASE_URL =
-  (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
+const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
 
 /**
  * 🧠 Check if the token is expired
  */
 const isTokenExpired = (expiresAt?: number | Date) => {
   if (!expiresAt) return true;
-  const expiry =
-    typeof expiresAt === "number"
-      ? expiresAt * 1000
-      : new Date(expiresAt).getTime();
+  const expiry = typeof expiresAt === "number" ? expiresAt * 1000 : new Date(expiresAt).getTime();
   return Date.now() >= expiry;
 };
 
@@ -43,6 +39,7 @@ export const refreshClioToken = async (): Promise<string | null> => {
 
     const { access_token, refresh_token, expires_in } = response.data;
 
+    // Update DB
     tokenDoc.clioAccessToken = access_token;
     tokenDoc.clioRefreshToken = refresh_token;
     tokenDoc.clioTokenExpiry = Math.floor(Date.now() / 1000) + expires_in;
@@ -97,17 +94,12 @@ export const logTimeEntry = async (
   billableData: {
     description: string;
     durationInSeconds: number;
-    date: string;
+    date: string; // YYYY-MM-DD
     matterId: string;
   }
 ) => {
   try {
-    if (
-      !billableData.matterId ||
-      !billableData.description ||
-      !billableData.date ||
-      !billableData.durationInSeconds
-    ) {
+    if (!billableData.matterId || !billableData.description || !billableData.date || !billableData.durationInSeconds) {
       throw new Error("Missing required billableData fields");
     }
 
@@ -115,9 +107,9 @@ export const logTimeEntry = async (
       data: {
         type: "time_entries",
         attributes: {
-          note: billableData.description, // <-- fixed here
-          date: billableData.date,
-          quantity: billableData.durationInSeconds / 3600,
+          note: billableData.description, // description text
+          date: billableData.date, // YYYY-MM-DD
+          quantity: billableData.durationInSeconds / 3600, // in hours
           billable: true,
         },
         relationships: {
@@ -142,22 +134,15 @@ export const logTimeEntry = async (
 
     const response = await axios.post(url, payload, { headers });
 
-    console.log(
-      "[ClioService] ✅ Successfully logged time entry:",
-      response.data
-    );
+    console.log("[ClioService] ✅ Successfully logged time entry:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error(
-      "[ClioService] 🔴 Failed to push time entry:",
-      error.response?.status,
-      error.response?.data || error.message
-    );
+    console.error("[ClioService] 🔴 Failed to push time entry:", error.response?.status, error.response?.data || error.message);
     throw new Error(
       error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to push time entry to Clio"
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to push time entry to Clio"
     );
   }
 };

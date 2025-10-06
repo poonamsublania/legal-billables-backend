@@ -1,12 +1,12 @@
 // src/controllers/billingController.ts
 import { Request, Response } from "express";
-import { getClioToken, logTimeEntry } from "../services/clioService";
+import { logTimeEntrySafe } from "../services/clioService";
 
 interface BillableData {
   matterId: string;
   durationInSeconds: number;
-  description: string; // will be mapped to 'note' in Clio payload
-  date: string;
+  description: string; // will map to 'note' in Clio
+  date: string; // YYYY-MM-DD
 }
 
 export const createTimeEntry = async (req: Request, res: Response) => {
@@ -26,29 +26,21 @@ export const createTimeEntry = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing required billableData fields" });
     }
 
-    console.log("[BillingController] Billable Data:", billableData);
+    console.log("[BillingController] Validated Billable Data:", billableData);
 
-    // Get valid Clio token (auto-refresh if expired)
-    const accessToken = await getClioToken();
-
-    if (!accessToken) {
-      return res.status(401).json({ error: "No valid Clio access token found" });
-    }
-
-    console.log("[BillingController] Clio Access Token retrieved");
-
-    // Push time entry
-    const result = await logTimeEntry(accessToken, billableData);
+    // Log time entry using safe wrapper (handles token refresh)
+    const result = await logTimeEntrySafe(billableData);
 
     console.log("[BillingController] Clio Response:", result);
 
     res.json({ success: true, timeEntry: result });
   } catch (err: unknown) {
     console.error("[BillingController] 🔴 Error logging billable:", err);
+
     res.status(500).json({
       error:
         (err as any)?.response?.data?.error ||
-        (err as Error).message ||
+        (err as any)?.message ||
         "Failed to log time entry",
     });
   }
