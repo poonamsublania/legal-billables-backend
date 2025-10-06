@@ -7,7 +7,7 @@ const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").repl
 /**
  * 🧠 Check if the token is expired
  */
-const isTokenExpired = (expiresAt?: number | Date) => {
+const isTokenExpired = (expiresAt?: number | Date): boolean => {
   if (!expiresAt) return true;
   const expiry = typeof expiresAt === "number" ? expiresAt * 1000 : new Date(expiresAt).getTime();
   return Date.now() >= expiry;
@@ -16,12 +16,12 @@ const isTokenExpired = (expiresAt?: number | Date) => {
 /**
  * 🔄 Refresh Clio access token
  */
-export const refreshClioToken = async (): Promise<string | null> => {
+export const refreshClioToken = async (): Promise<string | undefined> => {
   try {
     const tokenDoc = await ClioTokenModel.findOne();
     if (!tokenDoc?.clioRefreshToken) {
       console.error("[ClioService] ❌ No refresh token found in DB");
-      return null;
+      return undefined;
     }
 
     console.log("[ClioService] 🔄 Refreshing Clio access token...");
@@ -52,37 +52,38 @@ export const refreshClioToken = async (): Promise<string | null> => {
       "[ClioService] 🔴 Token refresh failed:",
       error.response?.data || error.message
     );
-    return null;
+    return undefined;
   }
 };
 
 /**
  * 🧾 Get valid Clio token (auto-refresh if expired)
  */
-export const getClioToken = async (): Promise<string | null> => {
+export const getClioToken = async (): Promise<string | undefined> => {
   try {
     const tokenDoc = await ClioTokenModel.findOne();
     if (!tokenDoc) {
       console.error("[ClioService] ❌ No Clio token found in DB");
-      return null;
+      return undefined;
     }
 
     const accessToken = tokenDoc.clioAccessToken || tokenDoc.accessToken;
     if (!accessToken) {
       console.error("[ClioService] ⚠️ Missing Clio access token in DB");
-      return null;
+      return undefined;
     }
 
     if (isTokenExpired(tokenDoc.clioTokenExpiry || tokenDoc.expiresAt)) {
       console.warn("[ClioService] ⚠️ Token expired, refreshing...");
-      return await refreshClioToken();
+      const refreshed = await refreshClioToken();
+      return refreshed; // could be undefined
     }
 
     console.log("[ClioService] ✅ Using existing valid Clio token");
     return accessToken;
   } catch (err: any) {
     console.error("[ClioService] Error fetching token:", err.message);
-    return null;
+    return undefined;
   }
 };
 
@@ -107,9 +108,9 @@ export const logTimeEntry = async (
       data: {
         type: "time_entries",
         attributes: {
-          note: billableData.description, // description text
-          date: billableData.date, // YYYY-MM-DD
-          quantity: billableData.durationInSeconds / 3600, // in hours
+          note: billableData.description,
+          date: billableData.date,
+          quantity: billableData.durationInSeconds / 3600, // convert seconds to hours
           billable: true,
         },
         relationships: {
@@ -137,7 +138,11 @@ export const logTimeEntry = async (
     console.log("[ClioService] ✅ Successfully logged time entry:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("[ClioService] 🔴 Failed to push time entry:", error.response?.status, error.response?.data || error.message);
+    console.error(
+      "[ClioService] 🔴 Failed to push time entry:",
+      error.response?.status,
+      error.response?.data || error.message
+    );
     throw new Error(
       error.response?.data?.error ||
       error.response?.data?.message ||
