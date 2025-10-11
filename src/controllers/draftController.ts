@@ -1,52 +1,43 @@
-// src/controllers/draftController.ts
 import { Request, Response } from "express";
 import Draft from "../models/draft";
-import { logTimeEntry } from "../services/clioService";
 
+// Create a new draft
 export const createDraft = async (req: Request, res: Response) => {
   try {
-    const { emailSubject, emailBody, gptSummary, durationInSeconds, matterId } = req.body;
-
-    const draft = await Draft.create({
-      emailSubject,
-      emailBody,
-      gptSummary,
-      durationInSeconds,
-      matterId,
-      status: "draft",
-    });
-
-    res.json({ success: true, draft });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    const draft = new Draft(req.body);
+    await draft.save();
+    res.status(201).json(draft);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create draft" });
   }
 };
 
-export const getDrafts = async (req: Request, res: Response) => {
-  const drafts = await Draft.find().sort({ createdAt: -1 });
-  res.json(drafts);
+// Get all drafts
+export const getDrafts = async (_req: Request, res: Response) => {
+  try {
+    const drafts = await Draft.find().sort({ createdAt: -1 });
+    res.json(drafts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch drafts" });
+  }
 };
 
+// Simulate push to Clio
 export const pushDraftToClio = async (req: Request, res: Response) => {
   try {
     const { draftId } = req.params;
     const draft = await Draft.findById(draftId);
-    if (!draft) return res.status(404).json({ message: "Draft not found" });
+    if (!draft) return res.status(404).json({ error: "Draft not found" });
 
-    const clioResponse = await logTimeEntry({
-      matterId: draft.matterId!,
-      durationInSeconds: draft.durationInSeconds,
-      description: draft.gptSummary,
-      date: new Date().toISOString().split("T")[0],
-    });
-
+    // Simulate push
     draft.status = "pushed";
     await draft.save();
 
-    res.json({ success: true, clioResponse });
-  } catch (error: any) {
-    console.error(error);
-    await Draft.findByIdAndUpdate(req.params.draftId, { status: "failed" });
-    res.status(500).json({ success: false, message: error.message });
+    res.json({ message: "Draft pushed to Clio (simulated)", draft });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to push draft" });
   }
 };

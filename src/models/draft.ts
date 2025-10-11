@@ -1,4 +1,3 @@
-// src/models/draft.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDraft extends Document {
@@ -7,21 +6,18 @@ export interface IDraft extends Document {
   gptSummary: string;
   durationInSeconds: number;
   matterId?: string;
-  status: "draft" | "pushed" | "failed";
+  status: "draft" | "pushed";
   createdAt: Date;
-  updatedAt: Date;
 }
 
-const draftSchema = new Schema<IDraft>(
-  {
-    emailSubject: { type: String, required: true },
-    emailBody: { type: String, required: true },
-    gptSummary: { type: String, required: true },
-    durationInSeconds: { type: Number, required: true },
-    matterId: { type: String },
-    status: { type: String, enum: ["draft", "pushed", "failed"], default: "draft" },
-  },
-  { timestamps: true }
-);
+const DraftSchema: Schema = new Schema({
+  emailSubject: { type: String, required: true },
+  emailBody: { type: String, required: true },
+  gptSummary: { type: String, required: true },
+  durationInSeconds: { type: Number, required: true },
+  matterId: { type: String },
+  status: { type: String, default: "draft" },
+  createdAt: { type: Date, default: Date.now },
+});
 
-export default mongoose.model<IDraft>("Draft", draftSchema);
+export default mongoose.model<IDraft>("Draft", DraftSchema);
