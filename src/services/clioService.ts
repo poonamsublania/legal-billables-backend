@@ -76,3 +76,9 @@ export const getClioToken = async (): Promise<string | null> => {
     return null;
   }
 };
+
+// Temporary mock Clio push (for free trial)
+export async function logTimeEntry(entry: any) {
+  console.log("🧪 Simulated Clio push (free trial):", entry);
+  return { message: "Simulated Clio push successful (free trial)" };
+}

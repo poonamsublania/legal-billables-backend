@@ -1,7 +1,7 @@
 // src/controllers/billingController.ts
 import { Request, Response } from "express";
 import axios from "axios";
-import { getClioToken } from "../services/clioService";
+import ClioTokenModel from "../models/clioToken"; // MongoDB model for OAuth tokens
 
 interface BillableData {
   matterId: string;
@@ -29,22 +29,33 @@ export const createTimeEntry = async (req: Request, res: Response) => {
 
     console.log("[BillingController] ✅ Billable Data:", billableData);
 
-    // Get valid Clio token
-    const accessToken = await getClioToken();
-    if (!accessToken) {
-      return res.status(401).json({ error: "No valid Clio access token found" });
+    // ----------------------------
+    // 1️⃣ Get the stored Clio OAuth token from MongoDB
+    // ----------------------------
+    const tokenDoc = await ClioTokenModel.findOne({ user: "current-user" }); // adjust 'user' field if needed
+    if (!tokenDoc || !tokenDoc.accessToken) {
+      return res.status(401).json({ error: "No valid Clio access token found. Please connect first." });
     }
+
+    let accessToken = tokenDoc.accessToken;
 
     console.log("[BillingController] 🔑 Clio Access Token retrieved");
 
-    // Prepare Clio payload
+    // Optional: refresh token logic if expired
+    // if (tokenDoc.expiresAt && new Date(tokenDoc.expiresAt) < new Date()) {
+    //   // implement refresh using tokenDoc.refreshToken
+    // }
+
+    // ----------------------------
+    // 2️⃣ Prepare Clio payload
+    // ----------------------------
     const payload = {
       data: {
         type: "time_entries",
         attributes: {
           note: description,
           date,
-          quantity: durationInSeconds / 3600,
+          quantity: durationInSeconds / 3600, // Clio expects hours
           billable: true,
         },
         relationships: {
@@ -57,7 +68,9 @@ export const createTimeEntry = async (req: Request, res: Response) => {
 
     console.log("[BillingController] 📤 Sending payload to Clio:", payload);
 
-    // Send time entry to Clio API
+    // ----------------------------
+    // 3️⃣ Send time entry to Clio API
+    // ----------------------------
     const response = await axios.post(
       "https://app.clio.com/api/v4/time_entries",
       payload,
