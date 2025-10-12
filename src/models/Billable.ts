@@ -1,11 +1,21 @@
 import mongoose from "mongoose";
 
-const billableSchema = new mongoose.Schema({
-  summary: String,
-  duration: Number,
-  userId: String,
-  caseId: String,
-  createdAt: { type: Date, default: Date.now }
+export interface IBillable extends mongoose.Document {
+  clientId: string;
+  caseId: string;
+  description: string;
+  duration: number; // seconds
+  source: "gmail" | "manual";
+  date: Date;
+}
+
+const BillableSchema = new mongoose.Schema<IBillable>({
+  clientId: { type: String, required: true },
+  caseId: { type: String, required: true },
+  description: { type: String, required: true },
+  duration: { type: Number, required: true },
+  source: { type: String, enum: ["gmail", "manual"], required: true },
+  date: { type: Date, default: Date.now },
 });
 
-export default mongoose.model("Billable", billableSchema);
+export default mongoose.model<IBillable>("Billable", BillableSchema);

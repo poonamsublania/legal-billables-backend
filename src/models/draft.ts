@@ -1,23 +1,26 @@
-import mongoose, { Schema, Document } from "mongoose";
+// src/models/Draft.ts
+import mongoose, { Document, Schema } from "mongoose";
 
+// Interface for TypeScript
 export interface IDraft extends Document {
   emailSubject: string;
   emailBody: string;
   gptSummary: string;
-  durationInSeconds: number;
-  matterId?: string;
   status: "draft" | "pushed";
-  createdAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const DraftSchema: Schema = new Schema({
-  emailSubject: { type: String, required: true },
-  emailBody: { type: String, required: true },
-  gptSummary: { type: String, required: true },
-  durationInSeconds: { type: Number, required: true },
-  matterId: { type: String },
-  status: { type: String, default: "draft" },
-  createdAt: { type: Date, default: Date.now },
-});
+// Schema definition
+const DraftSchema: Schema<IDraft> = new Schema(
+  {
+    emailSubject: { type: String, required: true },
+    emailBody: { type: String, required: true },
+    gptSummary: { type: String, required: true },
+    status: { type: String, enum: ["draft", "pushed"], default: "draft" },
+  },
+  { timestamps: true }
+);
 
+// Default export is the model
 export default mongoose.model<IDraft>("Draft", DraftSchema);

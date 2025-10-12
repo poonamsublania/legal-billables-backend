@@ -5,10 +5,8 @@ import { logTimeEntry, getClioToken } from "../controllers/clioController";
 
 const router = Router();
 
-// Endpoint to push tracked time and GPT summary to Clio
+// ✅ Correct relative paths
 router.post("/time-entry", requireAuth, logTimeEntry);
-
-// Optional endpoint for frontend to fetch the current stored Clio token
 router.get("/token", requireAuth(true), getClioToken);
 
 export default router;

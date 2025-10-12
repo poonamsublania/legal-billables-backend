@@ -1,10 +1,15 @@
 // src/routes/billingRoutes.ts
-import express from "express";
+import { Router } from "express";
 import { createTimeEntry } from "../controllers/billingController";
-import { requireAuth } from "../middlewares/authMiddleware";
 
-const router = express.Router();
+const router = Router();
 
-router.post("/time-entry", requireAuth, createTimeEntry);
+// Create a new billing time entry
+router.post("/time-entry", createTimeEntry);
+
+// Health ping
+router.get("/ping", (_req, res) => {
+  res.json({ message: "Billing service is alive 🚀" });
+});
 
 export default router;

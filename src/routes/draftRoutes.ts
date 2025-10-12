@@ -1,10 +1,18 @@
-import express from "express";
-import { createDraft, getDrafts, pushDraftToClio } from "../controllers/draftController";
+import { Router } from "express";
+import {
+  createDraft,
+  getDrafts,
+  updateDraft,
+  deleteDraft,
+  pushDraftToClio,
+} from "../controllers/draftsController";
 
-const router = express.Router();
+const router = Router();
 
 router.post("/", createDraft);
 router.get("/", getDrafts);
-router.post("/:draftId/push", pushDraftToClio);
+router.put("/:id", updateDraft);
+router.delete("/:id", deleteDraft);
+router.post("/push/:id", pushDraftToClio);
 
 export default router;
