@@ -1,10 +1,10 @@
-import { Router } from "express";
-import { getBillableSummary } from "../controllers/gptController";
-import { getGeneratedEmail } from "../controllers/emailController";
+// src/routes/gptRoutes.ts
+import express from "express";
+import { getSummary, getEmail } from "../controllers/gptController";
 
-const router = Router();
+const router = express.Router();
 
-router.post("/summary", getBillableSummary);
-router.post("/email", getGeneratedEmail); // ✅ directly here
+router.post("/summary", getSummary);
+router.post("/email", getEmail);
 
 export default router;

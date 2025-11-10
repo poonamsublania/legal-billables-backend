@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "kwaipilot/kat-coder-pro:free"; // Free model
 
 // ----------- Summary Generator ------------
 export const generateGPTSummary = async (text: string) => {
@@ -12,13 +13,9 @@ export const generateGPTSummary = async (text: string) => {
     const response = await axios.post(
       OPENROUTER_URL,
       {
-        model: "mistralai/mixtral-8x7b",
+        model: OPENROUTER_MODEL,
         messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful legal assistant. Summarize the following email concisely and clearly, highlighting client intent, legal topic, and any follow-up actions required.",
-          },
+          { role: "system", content: "You are a helpful legal assistant. Summarize the email clearly and concisely, highlighting client intent and follow-up actions." },
           { role: "user", content: text },
         ],
       },
@@ -30,10 +27,8 @@ export const generateGPTSummary = async (text: string) => {
       }
     );
 
-    return (
-      response.data?.choices?.[0]?.message?.content ||
-      "No summary generated."
-    );
+    const choices = response.data?.choices?.[0];
+    return choices?.message?.content || choices?.text || "No summary generated.";
   } catch (error: any) {
     console.error("❌ GPT Summary Error:", error.response?.data || error.message);
     return "Error generating summary.";
@@ -46,13 +41,9 @@ export const generateGPTEmail = async (prompt: string, thread: string) => {
     const response = await axios.post(
       OPENROUTER_URL,
       {
-        model: "mistralai/mixtral-8x7b",
+        model: OPENROUTER_MODEL,
         messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful legal assistant. Write a clear and professional email for a client based on the following task and context.",
-          },
+          { role: "system", content: "You are a helpful legal assistant. Write a professional client email based on the context and task." },
           { role: "user", content: `Context:\n${thread}\n\nTask:\n${prompt}` },
         ],
       },
@@ -64,10 +55,8 @@ export const generateGPTEmail = async (prompt: string, thread: string) => {
       }
     );
 
-    return (
-      response.data?.choices?.[0]?.message?.content ||
-      "No email generated."
-    );
+    const choices = response.data?.choices?.[0];
+    return choices?.message?.content || choices?.text || "No email generated.";
   } catch (error: any) {
     console.error("❌ GPT Email Error:", error.response?.data || error.message);
     return "Error generating email.";
