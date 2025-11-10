@@ -1,25 +1,20 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-export interface ICase {
+export interface IClient extends Document {
   name: string;
-  description?: string;
+  email: string;
+  phone?: string;
+  outstandingAmount?: number;
 }
 
-export interface IClient extends mongoose.Document {
-  name: string;
-  email?: string;
-  cases: ICase[];
-}
-
-const CaseSchema = new mongoose.Schema<ICase>({
-  name: { type: String, required: true },
-  description: { type: String },
-});
-
-const ClientSchema = new mongoose.Schema<IClient>({
-  name: { type: String, required: true },
-  email: { type: String },
-  cases: { type: [CaseSchema], default: [] },
-});
+const ClientSchema = new Schema<IClient>(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String },
+    outstandingAmount: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
 
 export default mongoose.model<IClient>("Client", ClientSchema);
