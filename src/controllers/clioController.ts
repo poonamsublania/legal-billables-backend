@@ -10,7 +10,8 @@ const CLIENT_ID = process.env.CLIO_CLIENT_ID!;
 const CLIENT_SECRET = process.env.CLIO_CLIENT_SECRET!;
 const REDIRECT_URI = process.env.CLIO_REDIRECT_URI!;
 
-let accessToken: string | null = null; // Temporary storage — ideally store in DB
+// ⚠️ Temporary in-memory token storage (resets on restart)
+let accessToken: string | null = null;
 
 // ---------------------------
 // ✅ Step 1: Clio OAuth Login
@@ -40,16 +41,17 @@ export const clioCallback = async (req: Request, res: Response) => {
     });
 
     accessToken = tokenRes.data.access_token;
-    console.log("✅ Clio access token received:", accessToken ? "Yes" : "No");
+    console.log("✅ Clio access token received:", !!accessToken);
+
     res.send("✅ Clio authorization successful! You can now push data.");
   } catch (err: any) {
-    console.error("❌ Error fetching Clio token:", err.message);
+    console.error("❌ Error fetching Clio token:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to get Clio token" });
   }
 };
 
 // ---------------------------
-// ✅ Step 3: Push to Clio
+// ✅ Step 3: Push time entry to Clio
 // ---------------------------
 export const pushToClio = async (req: Request, res: Response) => {
   if (!accessToken)
@@ -86,13 +88,17 @@ export const pushToClio = async (req: Request, res: Response) => {
       data: response.data,
     });
   } catch (error: any) {
-    console.error("❌ Failed to push to Clio:", error.message);
-    res.status(500).json({ error: "Failed to push to Clio" });
+    console.error("❌ Failed to push to Clio:", error.response?.data || error.message);
+    if (error.response?.status === 401) {
+      res.status(401).json({ error: "Access token expired. Please log in again." });
+    } else {
+      res.status(500).json({ error: "Failed to push to Clio" });
+    }
   }
 };
 
 // ---------------------------
-// ✅ Step 4: Legacy endpoints (optional)
+// ✅ Step 4: Mock local log (for testing without Clio)
 // ---------------------------
 export const logTimeEntry = async (req: Request, res: Response) => {
   const { description, duration, date } = req.body;
@@ -108,9 +114,30 @@ export const logTimeEntry = async (req: Request, res: Response) => {
   });
 };
 
+// ---------------------------
+// ✅ Step 5: Get token status
+// ---------------------------
 export const getClioToken = async (req: Request, res: Response) => {
   res.json({
     success: true,
     accessToken: accessToken ? "Token available" : "No token yet",
+  });
+};
+
+// ---------------------------
+// ✅ Step 6: Debug route (check token)
+// ---------------------------
+export const debugToken = (req: Request, res: Response) => {
+  if (!accessToken) {
+    return res.status(404).json({
+      success: false,
+      message: "No access token found. Please log in to Clio first.",
+    });
+  }
+
+  res.json({
+    success: true,
+    message: "Access token available",
+    tokenPreview: accessToken.substring(0, 10) + "...",
   });
 };

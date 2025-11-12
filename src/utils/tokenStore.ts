@@ -1,19 +1,26 @@
-// src/utils/tokenStore.ts
+import mongoose from "mongoose";
 
-// Store the full Clio token response (access + refresh + expiry)
-let clioToken: any | null = null;
 
-export const setClioToken = (token: any) => {
-  clioToken = token;
-};
+// ✅ Define schema
+const tokenSchema = new mongoose.Schema({
+  _id: { type: String, default: "singleton" },
+  clioAccessToken: { type: String, default: null },
+  clioRefreshToken: { type: String, default: null },
+  clioTokenExpiry: { type: Number, default: null },
+  accessToken: { type: String, default: null },
+  refreshToken: { type: String, default: null },
+  expiresAt: { type: Date, default: null },
+});
 
-export const getClioToken = (): any | null => {
-  return clioToken;
-};
+// ✅ Create and export model
+const TokenStore = mongoose.model("TokenStore", tokenSchema);
+export default TokenStore; // <-- ✅ default export (NOT named export)
 
-export const clearClioToken = () => {
-  clioToken = null;
-};
+// ✅ Helper function
+export async function getStoredTokens() {
+  const tokens = await TokenStore.findById("singleton");
+  return tokens;
+}
 
-// ✅ Alias export so older code using getStoredTokens still works
-export const getStoredTokens = getClioToken;
+// ✅ Export both
+export { TokenStore };

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // src/app.ts
 const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config(); // Load environment variables first
+dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const path_1 = __importDefault(require("path"));
@@ -23,6 +23,7 @@ const emailRoutes_1 = __importDefault(require("./routes/emailRoutes"));
 const weeklySummaryRoutes_1 = __importDefault(require("./routes/weeklySummaryRoutes"));
 const manualRoutes_1 = __importDefault(require("./routes/manualRoutes"));
 const analyticsRoutes_1 = __importDefault(require("./routes/analyticsRoutes"));
+const clioTestRoutes_1 = __importDefault(require("./routes/clioTestRoutes"));
 // ----------------------------
 // ✅ Initialize App
 // ----------------------------
@@ -33,7 +34,7 @@ const PORT = parseInt(process.env.PORT || "5000", 10);
 // ----------------------------
 app.use((0, cors_1.default)({
     origin: [
-        "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm", // your Chrome extension ID
+        "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm",
         "https://mail.google.com",
         "http://localhost:5173",
         "http://localhost:3000",
@@ -51,7 +52,7 @@ app.use(body_parser_1.default.json());
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // ----------------------------
-// ✅ Health + Debug Routes
+// ✅ Health Routes
 // ----------------------------
 app.get("/", (_req, res) => {
     res.send("🚀 Legal Billables Backend Running Successfully");
@@ -59,7 +60,6 @@ app.get("/", (_req, res) => {
 app.get("/test", (_req, res) => {
     res.json({ message: "✅ Test route working" });
 });
-app.get("/api/billing/ping", (_req, res) => res.json({ message: "Billing service is alive 🚀" }));
 // ----------------------------
 // ✅ Main API Routes
 // ----------------------------
@@ -72,6 +72,23 @@ app.use("/api/emails", emailRoutes_1.default);
 app.use("/api/weekly-summary", weeklySummaryRoutes_1.default);
 app.use("/api/manual", manualRoutes_1.default);
 app.use("/api/analytics", analyticsRoutes_1.default);
+app.use("/api/clio", clioTestRoutes_1.default);
+// ----------------------------
+// ✅ Mounted Routes Debug Log
+// ----------------------------
+const mountedRoutes = [
+    "/api/auth",
+    "/api/gpt",
+    "/api/mock-clio",
+    "/api/clio",
+    "/api/clients",
+    "/api/emails",
+    "/api/weekly-summary",
+    "/api/manual",
+    "/api/analytics",
+];
+console.log("✅ Mounted routes:");
+mountedRoutes.forEach((r) => console.log(`➡️  ${r}`));
 // ----------------------------
 // ✅ 404 Handler
 // ----------------------------
@@ -82,25 +99,11 @@ app.use((_req, res) => {
 // ✅ Start Server
 // ----------------------------
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
-    // Debug: list all registered routes
-    const router = app._router;
-    if (router && router.stack) {
-        router.stack.forEach((middleware) => {
-            if (middleware.route && middleware.route.path) {
-                const methods = Object.keys(middleware.route.methods)
-                    .map((m) => m.toUpperCase())
-                    .join(", ");
-                console.log(`➡️  [${methods}] ${middleware.route.path}`);
-            }
-        });
-    }
+    console.log(`✅ Server running on: http://localhost:${PORT}`);
 });
 // ----------------------------
-// ✅ Static Frontend Support (optional)
+// ✅ Optional Static Frontend
 // ----------------------------
 app.use(express_1.default.static(path_1.default.resolve(__dirname, "../../frontend/dist")));
-app.get(/.*/, (_req, res) => {
-    res.sendFile(path_1.default.resolve(__dirname, "../../frontend/dist/index.html"));
-});
+app.get(/.*/, (_req, res) => res.sendFile(path_1.default.resolve(__dirname, "../../frontend/dist/index.html")));
 exports.default = app;

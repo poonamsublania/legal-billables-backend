@@ -1,28 +1,26 @@
-// src/routes/clioTestRoutes.ts
-import express, { Request, Response } from "express";
-import { getStoredTokens } from "../utils/tokenStore";
-import { createClioTimeEntry } from "../config/createClioTimeEntry";
+import express from "express";
+import { getStoredTokens } from "../utils/tokenStore"; // ✅ Correct import
 
 const router = express.Router();
 
-// Test route to create a Clio time entry
-router.post("/clio/test-entry", async (req: Request, res: Response) => {
+// ✅ Debug route to check Clio token
+router.get("/debug/token", async (req, res) => {
   try {
-    const tokens = getStoredTokens();
-    if (!tokens?.access_token) {
-      return res.status(401).json({ error: "No access token found" });
+    const tokens = await getStoredTokens(); // ✅ Works correctly now
+
+    if (!tokens || !tokens.clioAccessToken) {
+      return res.status(404).json({ message: "⚠️ No Clio token found in DB" });
     }
 
-    const result = await createClioTimeEntry(tokens.access_token, {
-      description: "Test entry from clioTestRoutes.ts",
-      duration: 60, // 1 hour
-      matter_id: process.env.TEST_MATTER_ID || "your-matter-id",
+    res.json({
+      message: "✅ Clio token found",
+      accessToken: tokens.clioAccessToken.slice(0, 12) + "... (truncated)",
+      expiresAt: tokens.clioTokenExpiry,
+      refreshToken: tokens.clioRefreshToken ? "exists" : "none",
     });
-
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    console.error("❌ Error creating Clio time entry:", error.response?.data || error.message);
-    res.status(500).json({ error: error.message });
+  } catch (err: any) {
+    console.error("❌ Error fetching token:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

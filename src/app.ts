@@ -20,6 +20,7 @@ import emailRoutes from "./routes/emailRoutes";
 import weeklySummaryRoutes from "./routes/weeklySummaryRoutes";
 import manualRoutes from "./routes/manualRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
+import clioTestRoutes from "./routes/clioTestRoutes";
 
 // ----------------------------
 // ✅ Initialize App
@@ -76,7 +77,7 @@ app.use("/api/emails", emailRoutes);
 app.use("/api/weekly-summary", weeklySummaryRoutes);
 app.use("/api/manual", manualRoutes);
 app.use("/api/analytics", analyticsRoutes);
-
+app.use("/api/clio", clioTestRoutes);
 // ----------------------------
 // ✅ Mounted Routes Debug Log
 // ----------------------------
