@@ -1,6 +1,6 @@
 // src/app.ts
 import dotenv from "dotenv";
-dotenv.config(); // Load environment variables first
+dotenv.config();
 
 import express, { Request, Response } from "express";
 import cors from "cors";
@@ -33,7 +33,7 @@ const PORT = parseInt(process.env.PORT || "5000", 10);
 app.use(
   cors({
     origin: [
-      "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm", // your Chrome extension ID
+      "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm",
       "https://mail.google.com",
       "http://localhost:5173",
       "http://localhost:3000",
@@ -54,7 +54,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ----------------------------
-// ✅ Health + Debug Routes
+// ✅ Health Routes
 // ----------------------------
 app.get("/", (_req: Request, res: Response) => {
   res.send("🚀 Legal Billables Backend Running Successfully");
@@ -63,10 +63,6 @@ app.get("/", (_req: Request, res: Response) => {
 app.get("/test", (_req: Request, res: Response) => {
   res.json({ message: "✅ Test route working" });
 });
-
-app.get("/api/billing/ping", (_req, res) =>
-  res.json({ message: "Billing service is alive 🚀" })
-);
 
 // ----------------------------
 // ✅ Main API Routes
@@ -82,6 +78,23 @@ app.use("/api/manual", manualRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 // ----------------------------
+// ✅ Mounted Routes Debug Log
+// ----------------------------
+const mountedRoutes = [
+  "/api/auth",
+  "/api/gpt",
+  "/api/mock-clio",
+  "/api/clio",
+  "/api/clients",
+  "/api/emails",
+  "/api/weekly-summary",
+  "/api/manual",
+  "/api/analytics",
+];
+console.log("✅ Mounted routes:");
+mountedRoutes.forEach((r) => console.log(`➡️  ${r}`));
+
+// ----------------------------
 // ✅ 404 Handler
 // ----------------------------
 app.use((_req: Request, res: Response) => {
@@ -92,29 +105,15 @@ app.use((_req: Request, res: Response) => {
 // ✅ Start Server
 // ----------------------------
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
-
-  // Debug: list all registered routes
-  const router = (app as any)._router;
-  if (router && router.stack) {
-    router.stack.forEach((middleware: any) => {
-      if (middleware.route && middleware.route.path) {
-        const methods = Object.keys(middleware.route.methods)
-          .map((m) => m.toUpperCase())
-          .join(", ");
-        console.log(`➡️  [${methods}] ${middleware.route.path}`);
-      }
-    });
-  }
+  console.log(`✅ Server running on: http://localhost:${PORT}`);
 });
 
 // ----------------------------
-// ✅ Static Frontend Support (optional)
+// ✅ Optional Static Frontend
 // ----------------------------
 app.use(express.static(path.resolve(__dirname, "../../frontend/dist")));
-
-app.get(/.*/, (_req, res) => {
-  res.sendFile(path.resolve(__dirname, "../../frontend/dist/index.html"));
-});
+app.get(/.*/, (_req, res) =>
+  res.sendFile(path.resolve(__dirname, "../../frontend/dist/index.html"))
+);
 
 export default app;

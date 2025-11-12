@@ -1,55 +1,116 @@
 // src/controllers/clioController.ts
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioTokenModel from "../models/clioToken"; // default import now
+import dotenv from "dotenv";
 
-export const logTimeEntry = async (req: Request, res: Response) => {
+dotenv.config();
+
+const CLIO_BASE_URL = "https://app.clio.com";
+const CLIENT_ID = process.env.CLIO_CLIENT_ID!;
+const CLIENT_SECRET = process.env.CLIO_CLIENT_SECRET!;
+const REDIRECT_URI = process.env.CLIO_REDIRECT_URI!;
+
+let accessToken: string | null = null; // Temporary storage — ideally store in DB
+
+// ---------------------------
+// ✅ Step 1: Clio OAuth Login
+// ---------------------------
+export const clioAuth = (req: Request, res: Response) => {
+  const authUrl = `${CLIO_BASE_URL}/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
+  res.redirect(authUrl);
+};
+
+// ---------------------------
+// ✅ Step 2: Clio OAuth Callback
+// ---------------------------
+export const clioCallback = async (req: Request, res: Response) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).json({ error: "Missing authorization code" });
+  }
+
   try {
-    const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
-    if (!tokenDoc) return res.status(401).json({ error: "Connect Clio first" });
+    const tokenRes = await axios.post(`${CLIO_BASE_URL}/oauth/token`, {
+      grant_type: "authorization_code",
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      redirect_uri: REDIRECT_URI,
+      code,
+    });
 
-    const { description, duration, date, matterId } = req.body;
-    if (!description || !duration || !date || !matterId) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const payload = {
-      data: {
-        type: "TimeEntry",
-        attributes: { description, duration, date, matter_id: matterId },
-      },
-    };
-
-    const result = await axios.post(
-      "https://app.clio.com/api/v4/time_entries",
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenDoc.accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log("[ClioController] Time entry logged:", result.data);
-    res.json({ success: true, result: result.data });
+    accessToken = tokenRes.data.access_token;
+    console.log("✅ Clio access token received:", accessToken ? "Yes" : "No");
+    res.send("✅ Clio authorization successful! You can now push data.");
   } catch (err: any) {
-    console.error("❌ Failed to log time entry:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to log time entry" });
+    console.error("❌ Error fetching Clio token:", err.message);
+    res.status(500).json({ error: "Failed to get Clio token" });
   }
 };
 
-export const getClioToken = async (req: Request, res: Response) => {
+// ---------------------------
+// ✅ Step 3: Push to Clio
+// ---------------------------
+export const pushToClio = async (req: Request, res: Response) => {
+  if (!accessToken)
+    return res
+      .status(401)
+      .json({ error: "Not authorized with Clio. Please log in first." });
+
+  const { description, duration, date } = req.body;
+
+  if (!description || !duration || !date) {
+    return res.status(400).json({ error: "Missing fields in request body" });
+  }
+
   try {
-    const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
-    if (!tokenDoc) return res.status(404).json({ error: "No Clio token found" });
+    const entry = {
+      activity: {
+        description,
+        duration,
+        date,
+      },
+    };
+
+    const response = await axios.post(
+      `${CLIO_BASE_URL}/api/v4/activities.json`,
+      entry,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
 
     res.json({
-      accessToken: tokenDoc.accessToken,
-      expiresAt: tokenDoc.expiresAt,
+      success: true,
+      message: "✅ Time entry pushed to Clio successfully",
+      data: response.data,
     });
-  } catch (err: any) {
-    console.error("❌ Failed to fetch Clio token:", err.message);
-    res.status(500).json({ error: "Failed to fetch Clio token" });
+  } catch (error: any) {
+    console.error("❌ Failed to push to Clio:", error.message);
+    res.status(500).json({ error: "Failed to push to Clio" });
   }
+};
+
+// ---------------------------
+// ✅ Step 4: Legacy endpoints (optional)
+// ---------------------------
+export const logTimeEntry = async (req: Request, res: Response) => {
+  const { description, duration, date } = req.body;
+
+  if (!description || !duration || !date) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  res.json({
+    success: true,
+    message: "🕒 Time entry logged successfully (mock local entry)",
+    data: { description, duration, date },
+  });
+};
+
+export const getClioToken = async (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    accessToken: accessToken ? "Token available" : "No token yet",
+  });
 };
