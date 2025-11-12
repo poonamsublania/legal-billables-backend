@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-
 // ✅ Define schema
 const tokenSchema = new mongoose.Schema({
   _id: { type: String, default: "singleton" },
@@ -12,15 +11,45 @@ const tokenSchema = new mongoose.Schema({
   expiresAt: { type: Date, default: null },
 });
 
-// ✅ Create and export model
-const TokenStore = mongoose.model("TokenStore", tokenSchema);
-export default TokenStore; // <-- ✅ default export (NOT named export)
+// ✅ Prevent re-compiling model during hot reload (important for dev + Render)
+const TokenStore =
+  mongoose.models.TokenStore || mongoose.model("TokenStore", tokenSchema);
 
-// ✅ Helper function
+export default TokenStore; // ✅ default export for direct import
+
+// ✅ Get stored tokens
 export async function getStoredTokens() {
-  const tokens = await TokenStore.findById("singleton");
-  return tokens;
+  try {
+    const tokens = await TokenStore.findById("singleton");
+    return tokens;
+  } catch (error: any) {
+    console.error("❌ Error fetching tokens:", error.message);
+    return null;
+  }
 }
 
-// ✅ Export both
-export { TokenStore };
+// ✅ Save or update tokens
+export async function saveTokens(tokens: any) {
+  try {
+    const updated = await TokenStore.findByIdAndUpdate(
+      "singleton",
+      { $set: tokens },
+      { upsert: true, new: true }
+    );
+    console.log("✅ Tokens saved to MongoDB");
+    return updated;
+  } catch (error: any) {
+    console.error("❌ Error saving tokens:", error.message);
+    throw error;
+  }
+}
+
+// ✅ Optional helper to clear tokens (for debugging)
+export async function clearTokens() {
+  try {
+    await TokenStore.findByIdAndDelete("singleton");
+    console.log("🗑️ Tokens cleared");
+  } catch (error: any) {
+    console.error("❌ Error clearing tokens:", error.message);
+  }
+}

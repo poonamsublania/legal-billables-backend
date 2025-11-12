@@ -1,17 +1,14 @@
-// src/controllers/clioController.ts
 import { Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import { saveTokens, getStoredTokens } from "../utils/tokenStore"; // ✅ Added DB helpers
 
 dotenv.config();
 
 const CLIO_BASE_URL = "https://app.clio.com";
 const CLIENT_ID = process.env.CLIO_CLIENT_ID!;
 const CLIENT_SECRET = process.env.CLIO_CLIENT_SECRET!;
-const REDIRECT_URI = process.env.CLIO_REDIRECT_URI!;
-
-// ⚠️ Temporary in-memory token storage (resets on restart)
-let accessToken: string | null = null;
+const REDIRECT_URI = process.env.CLIO_REDIRECT_URI!; // ✅ ensure you have this in .env
 
 // ---------------------------
 // ✅ Step 1: Clio OAuth Login
@@ -22,7 +19,7 @@ export const clioAuth = (req: Request, res: Response) => {
 };
 
 // ---------------------------
-// ✅ Step 2: Clio OAuth Callback
+// ✅ Step 2: Clio OAuth Callback — Save tokens to MongoDB
 // ---------------------------
 export const clioCallback = async (req: Request, res: Response) => {
   const { code } = req.query;
@@ -40,10 +37,18 @@ export const clioCallback = async (req: Request, res: Response) => {
       code,
     });
 
-    accessToken = tokenRes.data.access_token;
-    console.log("✅ Clio access token received:", !!accessToken);
+    const { access_token, refresh_token, expires_in } = tokenRes.data;
 
-    res.send("✅ Clio authorization successful! You can now push data.");
+    // ✅ Save tokens to MongoDB
+    await saveTokens({
+      clioAccessToken: access_token,
+      clioRefreshToken: refresh_token,
+      clioTokenExpiry: Date.now() + expires_in * 1000,
+    });
+
+    console.log("✅ Clio token saved to MongoDB successfully");
+
+    res.send("✅ Clio authentication successful! Tokens saved to MongoDB.");
   } catch (err: any) {
     console.error("❌ Error fetching Clio token:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to get Clio token" });
@@ -51,18 +56,23 @@ export const clioCallback = async (req: Request, res: Response) => {
 };
 
 // ---------------------------
-// ✅ Step 3: Push time entry to Clio
+// ✅ Step 3: Push time entry to Clio using stored token
 // ---------------------------
 export const pushToClio = async (req: Request, res: Response) => {
-  if (!accessToken)
-    return res
-      .status(401)
-      .json({ error: "Not authorized with Clio. Please log in first." });
-
   const { description, duration, date } = req.body;
 
   if (!description || !duration || !date) {
     return res.status(400).json({ error: "Missing fields in request body" });
+  }
+
+  // ✅ Get token from MongoDB
+  const tokens = await getStoredTokens();
+  const accessToken = tokens?.clioAccessToken;
+
+  if (!accessToken) {
+    return res
+      .status(401)
+      .json({ error: "No Clio access token found. Please authenticate first." });
   }
 
   try {
@@ -115,29 +125,41 @@ export const logTimeEntry = async (req: Request, res: Response) => {
 };
 
 // ---------------------------
-// ✅ Step 5: Get token status
+// ✅ Step 5: Get token status from MongoDB
 // ---------------------------
 export const getClioToken = async (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    accessToken: accessToken ? "Token available" : "No token yet",
-  });
-};
+  const tokens = await getStoredTokens();
 
-// ---------------------------
-// ✅ Step 6: Debug route (check token)
-// ---------------------------
-export const debugToken = (req: Request, res: Response) => {
-  if (!accessToken) {
-    return res.status(404).json({
-      success: false,
-      message: "No access token found. Please log in to Clio first.",
-    });
+  if (!tokens || !tokens.clioAccessToken) {
+    return res.status(404).json({ success: false, message: "No token in DB" });
   }
 
   res.json({
     success: true,
-    message: "Access token available",
-    tokenPreview: accessToken.substring(0, 10) + "...",
+    message: "Token available in MongoDB",
+    tokenPreview: tokens.clioAccessToken.substring(0, 10) + "...",
+  });
+};
+
+// ---------------------------
+// ✅ Step 6: Debug route — view token info
+// ---------------------------
+export const debugToken = async (req: Request, res: Response) => {
+  const tokens = await getStoredTokens();
+
+  if (!tokens) {
+    return res.status(404).json({ success: false, message: "No tokens found" });
+  }
+
+  res.json({
+    success: true,
+    message: "Tokens retrieved",
+    data: {
+      accessToken: tokens.clioAccessToken
+        ? tokens.clioAccessToken.slice(0, 12) + "... (truncated)"
+        : "none",
+      refreshToken: tokens.clioRefreshToken ? "exists" : "none",
+      expiresAt: tokens.clioTokenExpiry,
+    },
   });
 };
