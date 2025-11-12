@@ -1,7 +1,7 @@
 // src/controllers/clioAuthController.ts
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioTokenModel from "../models/clioToken";
+import ClioTokenModel from "../models/clioToken"; // Default export
 
 // ✅ Redirect user to Clio login
 export const redirectToClioLogin = (req: Request, res: Response) => {
@@ -10,7 +10,7 @@ export const redirectToClioLogin = (req: Request, res: Response) => {
   res.redirect(authURL);
 };
 
-// ✅ Handle Clio OAuth callback
+// ✅ Handle Clio OAuth callback and save token in MongoDB
 export const handleClioCallback = async (req: Request, res: Response) => {
   const code = req.query.code as string;
   if (!code) return res.status(400).send("❌ Missing Clio OAuth code");
@@ -33,9 +33,9 @@ export const handleClioCallback = async (req: Request, res: Response) => {
     // Calculate expiry timestamp
     const expiresAt = Date.now() + expires_in * 1000;
 
-    // ⚡ Save token in MongoDB using singleton pattern
+    // ⚡ Save token in MongoDB singleton
     const savedToken = await ClioTokenModel.findOneAndUpdate(
-      { _id: "singleton" }, // Always use single document
+      { _id: "singleton" },
       {
         clioAccessToken: access_token,
         clioRefreshToken: refresh_token,
