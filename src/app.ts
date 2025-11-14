@@ -6,30 +6,28 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import path from "path";
 import bodyParser from "body-parser";
-import "./config/db";
+import { connectDB } from "./config/db";   // ✅ FIXED (import proper function)
+import { keepMongoAwake } from "./utils/pingMongo";
 
 // ----------------------------
-// ✅ Route Imports
-// ----------------------------
-import authRoutes from "./routes/authRoutes";
-import gptRoutes from "./routes/gptRoutes";
-import clioRoutes from "./routes/clioRoutes";
-import mockClioRoutes from "./routes/mockClioRoutes";
-import clientsRoutes from "./routes/clientsRoutes";
-import emailRoutes from "./routes/emailRoutes";
-import weeklySummaryRoutes from "./routes/weeklySummaryRoutes";
-import manualRoutes from "./routes/manualRoutes";
-import analyticsRoutes from "./routes/analyticsRoutes";
-import clioTestRoutes from "./routes/clioTestRoutes";
-
-// ----------------------------
-// ✅ Initialize App
+// Initialize App
 // ----------------------------
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
 // ----------------------------
-// ✅ CORS Configuration
+// Connect to MongoDB BEFORE loading routes
+// ----------------------------
+(async () => {
+  console.log("⏳ Connecting to MongoDB...");
+  await connectDB();  // ✅ WAIT UNTIL MONGO CONNECTS
+  console.log("✅ Mongo DB ready!");
+})();
+
+keepMongoAwake();
+
+// ----------------------------
+// CORS
 // ----------------------------
 app.use(
   cors({
@@ -48,14 +46,14 @@ app.use(
 );
 
 // ----------------------------
-// ✅ Middleware Setup
+// Middleware
 // ----------------------------
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ----------------------------
-// ✅ Health Routes
+// Health Routes
 // ----------------------------
 app.get("/", (_req: Request, res: Response) => {
   res.send("🚀 Legal Billables Backend Running Successfully");
@@ -66,8 +64,19 @@ app.get("/test", (_req: Request, res: Response) => {
 });
 
 // ----------------------------
-// ✅ Main API Routes
+// Lazy-load routes AFTER DB connection is ready
 // ----------------------------
+import authRoutes from "./routes/authRoutes";
+import gptRoutes from "./routes/gptRoutes";
+import clioRoutes from "./routes/clioRoutes";
+import mockClioRoutes from "./routes/mockClioRoutes";
+import clientsRoutes from "./routes/clientsRoutes";
+import emailRoutes from "./routes/emailRoutes";
+import weeklySummaryRoutes from "./routes/weeklySummaryRoutes";
+import manualRoutes from "./routes/manualRoutes";
+import caseRoutes from "./routes/caseRoutes";
+import teamRoutes from "./routes/teamRoutes";
+
 app.use("/api/auth", authRoutes);
 app.use("/api/gpt", gptRoutes);
 app.use("/api/mock-clio", mockClioRoutes);
@@ -76,12 +85,10 @@ app.use("/api/clients", clientsRoutes);
 app.use("/api/emails", emailRoutes);
 app.use("/api/weekly-summary", weeklySummaryRoutes);
 app.use("/api/manual", manualRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.use("/api/clio", clioTestRoutes);
-// ----------------------------
-// ✅ Mounted Routes Debug Log
-// ----------------------------
-const mountedRoutes = [
+app.use("/api/cases", caseRoutes);
+app.use("/api/team", teamRoutes);
+
+console.log("✅ Mounted routes:", [
   "/api/auth",
   "/api/gpt",
   "/api/mock-clio",
@@ -91,26 +98,24 @@ const mountedRoutes = [
   "/api/weekly-summary",
   "/api/manual",
   "/api/analytics",
-];
-console.log("✅ Mounted routes:");
-mountedRoutes.forEach((r) => console.log(`➡️  ${r}`));
+]);
 
 // ----------------------------
-// ✅ 404 Handler
+// 404 Handler
 // ----------------------------
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Route not found" });
 });
 
 // ----------------------------
-// ✅ Start Server
+// Start Server
 // ----------------------------
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on: http://localhost:${PORT}`);
+  console.log(`🔥 Server running on port ${PORT}`);
 });
 
 // ----------------------------
-// ✅ Optional Static Frontend
+// Optional Frontend Hosting
 // ----------------------------
 app.use(express.static(path.resolve(__dirname, "../../frontend/dist")));
 app.get(/.*/, (_req, res) =>

@@ -1,16 +1,11 @@
+// backend/src/routes/clientRoutes.ts
 import express from "express";
-import {
-  createClient,
-  getClients,
-  updateClient,
-  deleteClient,
-} from "../controllers/clientsController";
+import { getAllClients, createClient, updateClient, deleteClient } from "../controllers/clientController";
 
 const router = express.Router();
 
-// CRUD routes
+router.get("/", getAllClients);
 router.post("/", createClient);
-router.get("/", getClients);
 router.put("/:id", updateClient);
 router.delete("/:id", deleteClient);
 
