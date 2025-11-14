@@ -6,7 +6,7 @@ import { logTimeEntry, getClioToken } from "../controllers/clioController";
 const router = Router();
 
 // ✅ Correct relative paths
-router.post("/time-entry", requireAuth, logTimeEntry);
+router.post("/time-entry", logTimeEntry);
 router.get("/token", requireAuth(true), getClioToken);
 
 export default router;
