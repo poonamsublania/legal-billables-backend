@@ -1,21 +1,22 @@
-// src/models/clioToken.ts
-
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export interface IClioToken extends Document {
-  _id: string;
-  accessToken: string | null;
-  refreshToken: string | null;
-  expiresAt: number | null; // timestamp (ms)
+  clioAccessToken: string;
+  clioRefreshToken: string;
+  clioTokenExpiry: number;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: Date;
 }
 
-const ClioTokenSchema = new Schema({
-  _id: { type: String, default: "singleton" },
-
-  // FINAL AND ONLY FIELDS
-  accessToken: { type: String, default: null },
-  refreshToken: { type: String, default: null },
-  expiresAt: { type: Number, default: null }, // store as timestamp
+const ClioTokenSchema = new mongoose.Schema<IClioToken>({
+  _id: { type: String, default: "singleton" }, // singleton pattern
+  clioAccessToken: { type: String, required: true },
+  clioRefreshToken: { type: String, required: true },
+  clioTokenExpiry: { type: Number, required: true },
+  accessToken: { type: String, required: true },
+  refreshToken: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
 });
 
 export default mongoose.model<IClioToken>("ClioToken", ClioTokenSchema);

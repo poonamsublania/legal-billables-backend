@@ -1,23 +1,27 @@
 // src/services/clioService.ts
-
 import axios from "axios";
-import ClioTokenModel from "../models/clioToken";
+import ClioTokenModel  from "../models/clioToken";
 
-const CLIO_BASE_URL = "https://app.clio.com";
+const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
 
-/** Token expiry check */
-const isExpired = (expiresAt: number | null) => {
+/** 🧠 Check if the token is expired */
+const isTokenExpired = (expiresAt?: Date | null): boolean => {
   if (!expiresAt) return true;
-  return Date.now() >= expiresAt;
+  return Date.now() >= expiresAt.getTime();
 };
 
-/** 🔄 Refresh token */
-export const refreshClioToken = async () => {
-  const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
-  if (!tokenDoc?.refreshToken) return null;
-
+/** 🔄 Refresh Clio access token */
+export const refreshClioToken = async (): Promise<string | null> => {
   try {
-    const res = await axios.post(
+    const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
+    if (!tokenDoc?.refreshToken) {
+      console.error("[ClioService] ❌ No refresh token found in DB");
+      return null;
+    }
+
+    console.log("[ClioService] 🔄 Refreshing Clio access token...");
+
+    const response = await axios.post(
       `${CLIO_BASE_URL}/oauth/token`,
       new URLSearchParams({
         grant_type: "refresh_token",
@@ -28,28 +32,78 @@ export const refreshClioToken = async () => {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
-    tokenDoc.accessToken = res.data.access_token;
-    tokenDoc.refreshToken = res.data.refresh_token;
-    tokenDoc.expiresAt = Date.now() + res.data.expires_in * 1000;
+    const { access_token, refresh_token, expires_in } = response.data;
+
+    // Save token updates
+    tokenDoc.accessToken = access_token ?? null;
+    tokenDoc.refreshToken = refresh_token ?? tokenDoc.refreshToken;
+    tokenDoc.expiresAt = new Date(Date.now() + expires_in * 1000); // store as Date
     await tokenDoc.save();
 
-    console.log("🔁 Token refreshed");
-    return tokenDoc.accessToken;
-  } catch (e: any) {
-    console.error("❌ Refresh failed:", e.response?.data || e.message);
+    console.log("[ClioService] ✅ Token refreshed successfully");
+    return access_token ?? null;
+  } catch (error: any) {
+    console.error("[ClioService] 🔴 Token refresh failed:", error.response?.data || error.message);
     return null;
   }
 };
 
-/** Get valid token (auto-refresh) */
-export const getValidClioToken = async () => {
-  const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
-  if (!tokenDoc?.accessToken) return null;
+/** 🧾 Get valid Clio token (auto-refresh if expired) */
+export const getClioToken = async (): Promise<string | null> => {
+  try {
+    const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
+    if (!tokenDoc) {
+      console.error("[ClioService] ❌ No Clio token found in DB");
+      return null;
+    }
 
-  if (isExpired(tokenDoc.expiresAt)) {
-    console.log("⚠️ Token expired → refreshing");
-    return await refreshClioToken();
+    if (!tokenDoc.accessToken || isTokenExpired(tokenDoc.expiresAt)) {
+      console.warn("[ClioService] ⚠️ Token missing or expired, refreshing...");
+      return await refreshClioToken();
+    }
+
+    console.log("[ClioService] ✅ Using existing valid Clio token");
+    return tokenDoc.accessToken;
+  } catch (err: any) {
+    console.error("[ClioService] Error fetching token:", err.message);
+    return null;
   }
+};
 
-  return tokenDoc.accessToken;
+/** 🕒 Log time entry to Clio */
+export const logTimeEntry = async (entry: {
+  description: string;
+  duration: number; // in minutes
+  date: string; // ISO string
+  matterId: string;
+}) => {
+  try {
+    const token = await getClioToken();
+    if (!token) throw new Error("No valid Clio token available");
+
+    const payload = {
+      data: {
+        type: "TimeEntry",
+        attributes: {
+          description: entry.description,
+          duration: entry.duration,
+          date: entry.date,
+          matter_id: entry.matterId,
+        },
+      },
+    };
+
+    const response = await axios.post(`${CLIO_BASE_URL}/api/v4/time_entries`, payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("[ClioService] ✅ Time entry logged:", response.data);
+    return response.data;
+  } catch (err: any) {
+    console.error("❌ Failed to log time entry:", err.response?.data || err.message);
+    throw err;
+  }
 };
