@@ -1,4 +1,15 @@
-import mongoose from "mongoose";
+// src/models/Case.ts
+import mongoose, { Document } from "mongoose";
+
+// ✅ Add TS interface (matches your current schema)
+export interface ICase extends Document {
+  title: string;
+  client: string;
+  status: string;
+  assignedTo: string;
+  hoursLogged: number;
+  revenueGenerated: number;
+}
 
 const CaseSchema = new mongoose.Schema({
   title: String,
@@ -9,4 +20,5 @@ const CaseSchema = new mongoose.Schema({
   revenueGenerated: Number,
 });
 
-export default mongoose.model("Case", CaseSchema);
+// ✅ Export model + interface
+export default mongoose.model<ICase>("Case", CaseSchema);

@@ -1,20 +1,20 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface IBillable extends Document {
-  userId: string;
-  caseId: string;
-  description: string;
-  hours: number;
-  amount: number;
+  userEmail: string;
+  clientEmail: string;
+  summary: string;
+  duration: number;   // ← add
+  status: string;     // ← add
   date: Date;
 }
 
 const BillableSchema = new Schema<IBillable>({
-  userId: { type: String, required: true },
-  caseId: { type: String, required: true },
-  description: { type: String, required: true },
-  hours: { type: Number, required: true },
-  amount: { type: Number, required: true },
+  userEmail: { type: String, required: true },
+  clientEmail: { type: String, required: true },
+  summary: { type: String },
+  duration: { type: Number, required: true }, // ← add
+  status: { type: String, default: "completed" }, // ← add
   date: { type: Date, default: Date.now },
 });
 

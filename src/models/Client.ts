@@ -1,11 +1,20 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-const clientSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  phone: String,
-  company: String,
-  createdAt: { type: Date, default: Date.now }
+export interface IClient extends Document {
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  createdAt?: Date;
+}
+
+const ClientSchema = new Schema<IClient>({
+  name: { type: String, required: true },
+  email: { type: String },
+  phone: { type: String },
+  address: { type: String },
+  createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.model("Client", clientSchema);
+const ClientModel = mongoose.model<IClient>("Client", ClientSchema);
+export default ClientModel;
