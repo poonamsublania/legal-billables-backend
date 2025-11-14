@@ -1,84 +1,55 @@
 // src/services/clioService.ts
+
 import axios from "axios";
 import ClioTokenModel from "../models/clioToken";
 
-const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
+const CLIO_BASE_URL = "https://app.clio.com";
 
-/** 🧠 Check if the token is expired */
-const isTokenExpired = (expiresAt?: number | Date | null): boolean => {
+/** Token expiry check */
+const isExpired = (expiresAt: number | null) => {
   if (!expiresAt) return true;
-  const expiry = typeof expiresAt === "number" ? expiresAt * 1000 : new Date(expiresAt).getTime();
-  return Date.now() >= expiry;
+  return Date.now() >= expiresAt;
 };
 
-/** 🔄 Refresh Clio access token */
-export const refreshClioToken = async (): Promise<string | null> => {
+/** 🔄 Refresh token */
+export const refreshClioToken = async () => {
+  const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
+  if (!tokenDoc?.refreshToken) return null;
+
   try {
-    const tokenDoc = await ClioTokenModel.findOne();
-    if (!tokenDoc?.clioRefreshToken) {
-      console.error("[ClioService] ❌ No refresh token found in DB");
-      return null;
-    }
-
-    console.log("[ClioService] 🔄 Refreshing Clio access token...");
-
-    const response = await axios.post(
+    const res = await axios.post(
       `${CLIO_BASE_URL}/oauth/token`,
-      {
+      new URLSearchParams({
         grant_type: "refresh_token",
-        client_id: process.env.CLIO_CLIENT_ID,
-        client_secret: process.env.CLIO_CLIENT_SECRET,
-        refresh_token: tokenDoc.clioRefreshToken,
-      },
-      { headers: { "Content-Type": "application/json" } }
+        client_id: process.env.CLIO_CLIENT_ID!,
+        client_secret: process.env.CLIO_CLIENT_SECRET!,
+        refresh_token: tokenDoc.refreshToken!,
+      }),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
 
-    const { access_token, refresh_token, expires_in } = response.data;
-
-    // Update DB safely
-    tokenDoc.clioAccessToken = access_token ?? null;
-    tokenDoc.clioRefreshToken = refresh_token ?? null;
-    tokenDoc.clioTokenExpiry = Math.floor(Date.now() / 1000) + expires_in;
+    tokenDoc.accessToken = res.data.access_token;
+    tokenDoc.refreshToken = res.data.refresh_token;
+    tokenDoc.expiresAt = Date.now() + res.data.expires_in * 1000;
     await tokenDoc.save();
 
-    console.log("[ClioService] ✅ Token refreshed successfully");
-    return access_token ?? null;
-  } catch (error: any) {
-    console.error("[ClioService] 🔴 Token refresh failed:", error.response?.data || error.message);
+    console.log("🔁 Token refreshed");
+    return tokenDoc.accessToken;
+  } catch (e: any) {
+    console.error("❌ Refresh failed:", e.response?.data || e.message);
     return null;
   }
 };
 
-/** 🧾 Get valid Clio token (auto-refresh if expired) */
-export const getClioToken = async (): Promise<string | null> => {
-  try {
-    const tokenDoc = await ClioTokenModel.findOne();
-    if (!tokenDoc) {
-      console.error("[ClioService] ❌ No Clio token found in DB");
-      return null;
-    }
+/** Get valid token (auto-refresh) */
+export const getValidClioToken = async () => {
+  const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
+  if (!tokenDoc?.accessToken) return null;
 
-    const accessToken: string | null = tokenDoc.clioAccessToken ?? null;
-    if (!accessToken) {
-      console.error("[ClioService] ⚠️ Missing Clio access token in DB");
-      return null;
-    }
-
-    if (isTokenExpired(tokenDoc.clioTokenExpiry ?? null)) {
-      console.warn("[ClioService] ⚠️ Token expired, refreshing...");
-      return await refreshClioToken();
-    }
-
-    console.log("[ClioService] ✅ Using existing valid Clio token");
-    return accessToken;
-  } catch (err: any) {
-    console.error("[ClioService] Error fetching token:", err.message);
-    return null;
+  if (isExpired(tokenDoc.expiresAt)) {
+    console.log("⚠️ Token expired → refreshing");
+    return await refreshClioToken();
   }
-};
 
-// Temporary mock Clio push (for free trial)
-export async function logTimeEntry(entry: any) {
-  console.log("🧪 Simulated Clio push (free trial):", entry);
-  return { message: "Simulated Clio push successful (free trial)" };
-}
+  return tokenDoc.accessToken;
+};
