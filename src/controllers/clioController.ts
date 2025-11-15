@@ -4,9 +4,36 @@ import axios from "axios";
 import ClioTokenModel from "../models/clioToken";
 
 /**
+ * 🔹 Save or update the Clio token in MongoDB
+ */
+export const saveOrUpdateClioToken = async (data: {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+}) => {
+  const expiresAt = new Date(Date.now() + data.expires_in * 1000);
+
+  const saved = await ClioTokenModel.findOneAndUpdate(
+    { _id: "singleton" },
+    {
+      clioAccessToken: data.access_token,
+      clioRefreshToken: data.refresh_token,
+      clioTokenExpiry: Date.now() + data.expires_in * 1000,
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt,
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  console.log("✅ Clio token saved in MongoDB:", saved);
+  return saved;
+};
+
+/**
  * 🔄 Refresh Clio token if expired
  */
-async function refreshClioToken(): Promise<string> {
+export const refreshClioToken = async (): Promise<string> => {
   const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
   if (!tokenDoc?.refreshToken) throw new Error("No refresh token stored");
 
@@ -14,21 +41,23 @@ async function refreshClioToken(): Promise<string> {
     grant_type: "refresh_token",
     client_id: process.env.CLIO_CLIENT_ID!,
     client_secret: process.env.CLIO_CLIENT_SECRET!,
-    refresh_token: tokenDoc.refreshToken!,
+    refresh_token: tokenDoc.refreshToken,
   });
 
   const response = await axios.post("https://app.clio.com/oauth/token", data, {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
 
-  tokenDoc.accessToken = response.data.access_token;
-  tokenDoc.refreshToken = response.data.refresh_token;
-  tokenDoc.expiresAt = new Date(Date.now() + response.data.expires_in * 1000); // store as Date
-  await tokenDoc.save();
+  // Save refreshed token to MongoDB
+  await saveOrUpdateClioToken({
+    access_token: response.data.access_token,
+    refresh_token: response.data.refresh_token,
+    expires_in: response.data.expires_in,
+  });
 
   console.log("[ClioController] ✅ Token refreshed successfully");
   return response.data.access_token;
-}
+};
 
 /**
  * 🕒 Log a time entry in Clio
@@ -38,7 +67,7 @@ export const logTimeEntry = async (req: Request, res: Response) => {
     let tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
     if (!tokenDoc) return res.status(401).json({ error: "Connect Clio first" });
 
-    // refresh token if missing or expired
+    // Refresh token if missing or expired
     if (!tokenDoc.accessToken || !tokenDoc.expiresAt || Date.now() >= tokenDoc.expiresAt.getTime()) {
       console.log("[ClioController] 🔄 Access token missing or expired. Refreshing...");
       tokenDoc.accessToken = await refreshClioToken();
