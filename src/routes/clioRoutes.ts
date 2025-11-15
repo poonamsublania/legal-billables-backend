@@ -1,47 +1,18 @@
-import { Router } from "express";
-import { requireAuth } from "../middlewares/authMiddleware";
-import { logTimeEntry, refreshClioToken } from "../controllers/clioController";
-import ClioTokenModel, { IClioToken } from "../models/clioToken";
+import { Router, Request, Response } from "express";
+import ClioToken from "../models/clioToken";
 
 const router = Router();
 
-// Debug route to view token in MongoDB
-router.get("/debug-tokens", async (req, res) => {
+// Return current stored Clio token
+router.get("/token", async (req: Request, res: Response) => {
   try {
-    const tokenDoc = await ClioTokenModel.findOne({ _id: "singleton" });
-    res.json(tokenDoc);
+    const tokenDoc = await ClioToken.findOne({ _id: "singleton" });
+    if (!tokenDoc) return res.status(404).json({ error: "No token found" });
+
+    res.json({ clioAccessToken: tokenDoc.clioAccessToken });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch token", details: err });
-  }
-});
-
-// Clio API route to log time entry
-router.post("/time-entry", async (req, res) => {
-  try {
-    // Ensure token exists
-    let tokenDoc: IClioToken | null = await ClioTokenModel.findById("singleton");
-    if (!tokenDoc) {
-      return res.status(401).json({ error: "No Clio connection found. Authenticate first." });
-    }
-
-    // Refresh token if expired
-    if (!tokenDoc.accessToken || !tokenDoc.expiresAt || Date.now() >= tokenDoc.expiresAt.getTime()) {
-      console.log("[ClioRoutes] 🔄 Token expired or missing. Refreshing...");
-      const newAccessToken = await refreshClioToken();
-      tokenDoc.accessToken = newAccessToken;
-      await tokenDoc.save(); // Automatically saves updated token
-    }
-
-    // Call the original logTimeEntry controller
-    await logTimeEntry(req, res);
-
-    // Optional: Ensure MongoDB has the latest token after logging
-    const updatedTokenDoc = await ClioTokenModel.findById("singleton");
-    console.log("[ClioRoutes] ✅ Token after logging time entry:", updatedTokenDoc);
-
-  } catch (err: any) {
-    console.error("❌ /time-entry failed:", err);
-    res.status(500).json({ error: "Failed to log time entry", details: err.message });
+    console.error("Error fetching Clio token:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

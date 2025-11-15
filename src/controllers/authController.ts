@@ -1,27 +1,40 @@
+// src/controllers/authController.ts
+
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioTokenModel from "../models/clioToken";
+import ClioToken from "../models/clioToken";
 
-// Redirect to Clio login
+// --------------------------
+// Redirect user to Clio OAuth
+// --------------------------
 export const redirectToClioLogin = (req: Request, res: Response) => {
   const authURL = `https://app.clio.com/oauth/authorize?response_type=code&client_id=${process.env.CLIO_CLIENT_ID}&redirect_uri=${process.env.CLIO_REDIRECT_URI}&scope=read write openid profile email`;
   console.log("🌍 Redirecting to Clio:", authURL);
   res.redirect(authURL);
 };
 
+// --------------------------
 // Handle Clio OAuth callback
-export const handleClioCallback = async (req: Request, res: Response) => {
-  const code = req.query.code as string;
+// --------------------------
+interface ClioCallbackQuery {
+  code?: string;
+}
+
+export const handleClioCallback = async (
+  req: Request<{}, {}, {}, ClioCallbackQuery>,
+  res: Response
+) => {
+  const code = req.query.code;
   if (!code) return res.status(400).send("❌ Missing Clio OAuth code");
 
   try {
-    const params = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: process.env.CLIO_CLIENT_ID!,
-      client_secret: process.env.CLIO_CLIENT_SECRET!,
-      redirect_uri: process.env.CLIO_REDIRECT_URI!,
-      code: code,
-    });
+    // Exchange code for access token
+    const params = new URLSearchParams();
+    params.append("grant_type", "authorization_code");
+    params.append("client_id", process.env.CLIO_CLIENT_ID!);
+    params.append("client_secret", process.env.CLIO_CLIENT_SECRET!);
+    params.append("redirect_uri", process.env.CLIO_REDIRECT_URI!);
+    params.append("code", code);
 
     const response = await axios.post(
       "https://app.clio.com/oauth/token",
@@ -30,24 +43,30 @@ export const handleClioCallback = async (req: Request, res: Response) => {
     );
 
     const { access_token, refresh_token, expires_in } = response.data;
-    const expiresAt = new Date(Date.now() + expires_in * 1000);
 
-    // ⚡ Always update singleton in MongoDB
-    const savedToken = await ClioTokenModel.findOneAndUpdate(
+    // Save token in MongoDB
+    const savedToken = await ClioToken.findOneAndUpdate(
       { _id: "singleton" },
       {
         clioAccessToken: access_token,
         clioRefreshToken: refresh_token,
         clioTokenExpiry: Date.now() + expires_in * 1000,
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresAt,
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    console.log("✅ Clio token saved in MongoDB:", savedToken);
-    res.send("✅ Clio authentication successful! Tokens stored in DB.");
+    console.log("✅ Clio token saved:", savedToken);
+
+    // Send a simple HTML + JS response to store token in frontend Chrome storage
+    res.send(`
+      <script>
+        const token = "${access_token}";
+        chrome.storage.local.set({ clioAccessToken: token }, () => {
+          alert("Clio connected successfully!");
+          window.close();
+        });
+      </script>
+    `);
   } catch (err: any) {
     console.error("❌ Clio token exchange failed:", err?.response?.data || err.message);
     res.status(500).send("❌ Clio OAuth failed.");
