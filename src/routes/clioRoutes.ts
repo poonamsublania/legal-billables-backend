@@ -1,19 +1,39 @@
-import { Router, Request, Response } from "express";
-import ClioToken from "../models/clioToken";
+// src/routes/clioRoutes.ts
+import express, { Request, Response } from "express";
+import {
+  saveOrUpdateClioToken,
+  getClioToken,
+} from "../controllers/clioController";
 
-const router = Router();
+const router = express.Router();
 
-// Return current stored Clio token
-router.get("/token", async (req: Request, res: Response) => {
+/**
+ * Save token (manual testing only)
+ */
+router.post("/save-token", async (req: Request, res: Response) => {
   try {
-    const tokenDoc = await ClioToken.findOne({ _id: "singleton" });
-    if (!tokenDoc) return res.status(404).json({ error: "No token found" });
+    const { access_token, refresh_token, expires_in } = req.body;
 
-    res.json({ clioAccessToken: tokenDoc.clioAccessToken });
-  } catch (err) {
-    console.error("Error fetching Clio token:", err);
-    res.status(500).json({ error: "Internal server error" });
+    if (!access_token || !refresh_token || !expires_in) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const saved = await saveOrUpdateClioToken({
+      access_token,
+      refresh_token,
+      expires_in,
+    });
+
+    return res.json({ success: true, saved });
+  } catch (err: any) {
+    console.error("❌ Failed to save token:", err.message);
+    return res.status(500).json({ error: err.message });
   }
 });
+
+/**
+ * Get stored token
+ */
+router.get("/token", getClioToken);
 
 export default router;
