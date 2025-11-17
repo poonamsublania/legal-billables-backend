@@ -1,34 +1,26 @@
-// src/middlewares/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
 
-/**
- * Middleware to require backend API auth.
- * Optionally, later can include Clio token verification.
- */
-export const requireAuth = (optional: boolean = false) => {
+export function requireAuth() {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    
+    console.log("🔐 Incoming Authorization header:", authHeader);
+    console.log("🔑 Backend API Key:", process.env.BACKEND_SECRET_KEY);
 
     if (!authHeader) {
-      if (optional) return next(); // skip auth for optional routes
-      return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
+      console.log("❌ No Authorization header received");
+      return res.status(401).json({ error: "Missing Authorization header" });
     }
 
-    // Remove 'Bearer ' prefix
     const token = authHeader.replace("Bearer ", "").trim();
+    console.log("🔐 Extracted token:", token);
 
-      console.log("🔐 Received token:", token);
-    console.log("🔑 Backend API Key:", process.env.BACKEND_API_KEY);
-
-    // Check backend API key
-    if (token !== process.env.BACKEND_API_KEY) {
-      return res.status(401).json({ error: "Unauthorized: Invalid API key" });
+    if (token !== process.env.BACKEND_SECRET_KEY) {
+      console.log("❌ Invalid token provided");
+      return res.status(401).json({ error: "Unauthorized - Invalid token" });
     }
 
-    // ✅ Passed backend API key check, can attach user info if needed
-    // Example: req.user = { id: 'system' };
-
-    next();
+    console.log("✅ Token matched! Access granted.");
+    return next(); // 🔥 MOST IMPORTANT
   };
-};
-
+}
