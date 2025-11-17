@@ -17,6 +17,9 @@ export const requireAuth = (optional: boolean = false) => {
     // Remove 'Bearer ' prefix
     const token = authHeader.replace("Bearer ", "").trim();
 
+      console.log("🔐 Received token:", token);
+    console.log("🔑 Backend API Key:", process.env.BACKEND_API_KEY);
+
     // Check backend API key
     if (token !== process.env.BACKEND_API_KEY) {
       return res.status(401).json({ error: "Unauthorized: Invalid API key" });
@@ -28,3 +31,4 @@ export const requireAuth = (optional: boolean = false) => {
     next();
   };
 };
+
