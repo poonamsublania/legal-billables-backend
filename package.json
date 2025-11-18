@@ -10,7 +10,11 @@
   "scripts": {
     "dev": "ts-node-dev src/app.ts",
     "build": "tsc",
+<<<<<<< HEAD
     "start": "node dist/app.js && ts-node pushClioToken.ts"
+=======
+    "start": "node dist/app.js"
+>>>>>>> fix-backend
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
