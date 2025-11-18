@@ -1,23 +1,23 @@
-// src/controllers/authController.ts
 import { Request, Response } from "express";
 import axios from "axios";
 import ClioToken from "../models/clioToken";
 
 // --------------------------
-// Redirect user to Clio OAuth
+// Step 1: Redirect user to Clio OAuth
 // --------------------------
 export const redirectToClioLogin = (req: Request, res: Response) => {
-  if (!process.env.CLIO_CLIENT_ID || !process.env.CLIO_REDIRECT_URI) {
+  const { CLIO_CLIENT_ID, CLIO_REDIRECT_URI } = process.env;
+  if (!CLIO_CLIENT_ID || !CLIO_REDIRECT_URI) {
     return res.status(500).send("❌ Clio client ID or redirect URI not set");
   }
 
-  const authURL = `https://app.clio.com/oauth/authorize?response_type=code&client_id=${process.env.CLIO_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.CLIO_REDIRECT_URI)}&scope=read write openid profile email`;
+  const authURL = `https://app.clio.com/oauth/authorize?response_type=code&client_id=${CLIO_CLIENT_ID}&redirect_uri=${encodeURIComponent(CLIO_REDIRECT_URI)}&scope=read write openid profile email`;
   console.log("🌍 Redirecting to Clio:", authURL);
   res.redirect(authURL);
 };
 
 // --------------------------
-// Handle Clio OAuth callback
+// Step 2: Handle Clio OAuth callback
 // --------------------------
 interface ClioCallbackQuery {
   code?: string;
@@ -30,22 +30,28 @@ export const handleClioCallback = async (
   const code = req.query.code;
   if (!code) return res.status(400).send("❌ Missing Clio OAuth code");
 
-  try {
-    if (!process.env.CLIO_CLIENT_ID || !process.env.CLIO_CLIENT_SECRET || !process.env.CLIO_REDIRECT_URI) {
-      throw new Error("Clio environment variables missing");
-    }
+  const { CLIO_CLIENT_ID, CLIO_CLIENT_SECRET, CLIO_REDIRECT_URI } = process.env;
+  if (!CLIO_CLIENT_ID || !CLIO_CLIENT_SECRET || !CLIO_REDIRECT_URI) {
+    return res.status(500).send("❌ Clio environment variables missing");
+  }
 
+  try {
+    // Use Basic Auth for client credentials
     const params = new URLSearchParams();
     params.append("grant_type", "authorization_code");
-    params.append("client_id", process.env.CLIO_CLIENT_ID);
-    params.append("client_secret", process.env.CLIO_CLIENT_SECRET);
-    params.append("redirect_uri", process.env.CLIO_REDIRECT_URI);
     params.append("code", code);
+    params.append("redirect_uri", CLIO_REDIRECT_URI);
 
     const response = await axios.post(
       "https://app.clio.com/oauth/token",
       params.toString(),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        auth: {
+          username: CLIO_CLIENT_ID,
+          password: CLIO_CLIENT_SECRET,
+        },
+      }
     );
 
     const { access_token, refresh_token, expires_in } = response.data;

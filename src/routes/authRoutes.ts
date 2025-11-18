@@ -1,4 +1,3 @@
-// src/routes/authRoutes.ts
 import { Router } from "express";
 import { redirectToClioLogin, handleClioCallback } from "../controllers/authController";
 
@@ -11,4 +10,3 @@ router.get("/clio/login", redirectToClioLogin);
 router.get("/clio/callback", handleClioCallback);
 
 export default router;
-
