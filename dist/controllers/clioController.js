@@ -3,129 +3,51 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.debugToken = exports.getClioToken = exports.logTimeEntry = exports.pushToClio = exports.clioCallback = exports.clioAuth = void 0;
+exports.getClioToken = exports.refreshClioToken = exports.saveOrUpdateClioToken = void 0;
 const axios_1 = __importDefault(require("axios"));
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-const CLIO_BASE_URL = "https://app.clio.com";
-const CLIENT_ID = process.env.CLIO_CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIO_CLIENT_SECRET;
-const REDIRECT_URI = process.env.CLIO_REDIRECT_URI;
-// ⚠️ Temporary in-memory token storage (resets on restart)
-let accessToken = null;
-// ---------------------------
-// ✅ Step 1: Clio OAuth Login
-// ---------------------------
-const clioAuth = (req, res) => {
-    const authUrl = `${CLIO_BASE_URL}/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}`;
-    res.redirect(authUrl);
+const clioToken_1 = __importDefault(require("../models/clioToken"));
+/**
+ * Save OR Update Token
+ */
+const saveOrUpdateClioToken = async (data) => {
+    const expiresAt = new Date(Date.now() + data.expires_in * 1000);
+    const saved = await clioToken_1.default.findOneAndUpdate({ _id: "singleton" }, {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt,
+    }, { upsert: true, new: true, setDefaultsOnInsert: true });
+    console.log("✅ Clio token saved:", saved);
+    return saved;
 };
-exports.clioAuth = clioAuth;
-// ---------------------------
-// ✅ Step 2: Clio OAuth Callback
-// ---------------------------
-const clioCallback = async (req, res) => {
-    const { code } = req.query;
-    if (!code) {
-        return res.status(400).json({ error: "Missing authorization code" });
-    }
-    try {
-        const tokenRes = await axios_1.default.post(`${CLIO_BASE_URL}/oauth/token`, {
-            grant_type: "authorization_code",
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            redirect_uri: REDIRECT_URI,
-            code,
-        });
-        accessToken = tokenRes.data.access_token;
-        console.log("✅ Clio access token received:", !!accessToken);
-        res.send("✅ Clio authorization successful! You can now push data.");
-    }
-    catch (err) {
-        console.error("❌ Error fetching Clio token:", err.response?.data || err.message);
-        res.status(500).json({ error: "Failed to get Clio token" });
-    }
-};
-exports.clioCallback = clioCallback;
-// ---------------------------
-// ✅ Step 3: Push time entry to Clio
-// ---------------------------
-const pushToClio = async (req, res) => {
-    if (!accessToken)
-        return res
-            .status(401)
-            .json({ error: "Not authorized with Clio. Please log in first." });
-    const { description, duration, date } = req.body;
-    if (!description || !duration || !date) {
-        return res.status(400).json({ error: "Missing fields in request body" });
-    }
-    try {
-        const entry = {
-            activity: {
-                description,
-                duration,
-                date,
-            },
-        };
-        const response = await axios_1.default.post(`${CLIO_BASE_URL}/api/v4/activities.json`, entry, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        res.json({
-            success: true,
-            message: "✅ Time entry pushed to Clio successfully",
-            data: response.data,
-        });
-    }
-    catch (error) {
-        console.error("❌ Failed to push to Clio:", error.response?.data || error.message);
-        if (error.response?.status === 401) {
-            res.status(401).json({ error: "Access token expired. Please log in again." });
-        }
-        else {
-            res.status(500).json({ error: "Failed to push to Clio" });
-        }
-    }
-};
-exports.pushToClio = pushToClio;
-// ---------------------------
-// ✅ Step 4: Mock local log (for testing without Clio)
-// ---------------------------
-const logTimeEntry = async (req, res) => {
-    const { description, duration, date } = req.body;
-    if (!description || !duration || !date) {
-        return res.status(400).json({ error: "Missing required fields" });
-    }
-    res.json({
-        success: true,
-        message: "🕒 Time entry logged successfully (mock local entry)",
-        data: { description, duration, date },
+exports.saveOrUpdateClioToken = saveOrUpdateClioToken;
+/**
+ * Refresh Token
+ */
+const refreshClioToken = async () => {
+    const tokenDoc = await clioToken_1.default.findById("singleton");
+    if (!tokenDoc?.refreshToken)
+        throw new Error("No refresh token stored");
+    const form = new URLSearchParams({
+        grant_type: "refresh_token",
+        client_id: process.env.CLIO_CLIENT_ID,
+        client_secret: process.env.CLIO_CLIENT_SECRET,
+        refresh_token: tokenDoc.refreshToken,
     });
+    const response = await axios_1.default.post("https://app.clio.com/oauth/token", form, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    await (0, exports.saveOrUpdateClioToken)({
+        access_token: response.data.access_token,
+        refresh_token: response.data.refresh_token,
+        expires_in: response.data.expires_in,
+    });
+    console.log("🔄 Token refreshed successfully");
+    return response.data.access_token;
 };
-exports.logTimeEntry = logTimeEntry;
-// ---------------------------
-// ✅ Step 5: Get token status
-// ---------------------------
+exports.refreshClioToken = refreshClioToken;
+/** Debug — see token */
 const getClioToken = async (req, res) => {
-    res.json({
-        success: true,
-        accessToken: accessToken ? "Token available" : "No token yet",
-    });
+    const token = await clioToken_1.default.findById("singleton");
+    res.json(token);
 };
 exports.getClioToken = getClioToken;
-// ---------------------------
-// ✅ Step 6: Debug route (check token)
-// ---------------------------
-const debugToken = (req, res) => {
-    if (!accessToken) {
-        return res.status(404).json({
-            success: false,
-            message: "No access token found. Please log in to Clio first.",
-        });
-    }
-    res.json({
-        success: true,
-        message: "Access token available",
-        tokenPreview: accessToken.substring(0, 10) + "...",
-    });
-};
-exports.debugToken = debugToken;

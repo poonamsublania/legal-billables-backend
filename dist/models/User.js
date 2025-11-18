@@ -34,12 +34,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const BillableSchema = new mongoose_1.Schema({
-    userEmail: { type: String, required: true },
-    clientEmail: { type: String, required: true },
-    summary: { type: String },
-    duration: { type: Number, required: true }, // ← add
-    status: { type: String, default: "completed" }, // ← add
-    date: { type: Date, default: Date.now },
+const UserSchema = new mongoose_1.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    role: { type: String, default: "lawyer" },
 });
-exports.default = mongoose_1.default.model("Billable", BillableSchema);
+exports.default = mongoose_1.default.model("User", UserSchema);

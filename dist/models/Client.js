@@ -36,8 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const ClientSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String },
     phone: { type: String },
-    outstandingAmount: { type: Number, default: 0 },
-}, { timestamps: true });
-exports.default = mongoose_1.default.model("Client", ClientSchema);
+    address: { type: String },
+    createdAt: { type: Date, default: Date.now },
+});
+const ClientModel = mongoose_1.default.model("Client", ClientSchema);
+exports.default = ClientModel;
