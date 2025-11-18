@@ -14,9 +14,8 @@
     "start": "node dist/app.js && ts-node pushClioToken.ts"
 =======
     "start": "node dist/app.js"
->>>>>>> fix-backend
-  },
-  "dependencies": {
+>>>>>>> fix },
+"dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
