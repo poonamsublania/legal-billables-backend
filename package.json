@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "This is the backend service for the **Legal Billables AI Chrome Extension**, which automates time tracking and billable entry creation for lawyers. It connects with OpenAI for GPT-based summarization and PracticePanther for legal billing integration.",
+  "description": "This is the backend service for the Legal Billables AI Chrome Extension, which automates time tracking and billable entry creation for lawyers. It connects with OpenAI for GPT-based summarization and Clio for legal billing integration.",
   "keywords": [],
   "license": "ISC",
   "author": "",
@@ -10,12 +10,9 @@
   "scripts": {
     "dev": "ts-node-dev src/app.ts",
     "build": "tsc",
-<<<<<<< HEAD
-    "start": "node dist/app.js && ts-node pushClioToken.ts"
-=======
     "start": "node dist/app.js"
->>>>>>> fix },
-"dependencies": {
+  },
+  "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
