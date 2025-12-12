@@ -66,12 +66,14 @@ import manualRoutes from "./routes/manualRoutes";
 import caseRoutes from "./routes/caseRoutes";
 import teamRoutes from "./routes/teamRoutes";
 
+
+
 // ----------------------------
 // Load Routes
 // ----------------------------
-app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 app.use("/api/gpt", gptRoutes);
-app.use("/api/clio", clioRoutes);
+app.use("/clio", clioRoutes);
 app.use("/api/billing", billingRoutes);   // ⭐ Add real time entry route
 app.use("/api/mock-clio", mockClioRoutes);
 app.use("/api/clients", clientsRoutes);
@@ -81,10 +83,11 @@ app.use("/api/manual", manualRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/team", teamRoutes);
 
+
 console.log("✅ Mounted routes:", [
-  "/api/auth",
+  "auth",
   "/api/gpt",
-  "/api/clio",
+  "clio",
   "/api/billing",
   "/api/mock-clio",
   "/api/clients",

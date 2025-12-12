@@ -11,10 +11,18 @@ const clioToken_1 = __importDefault(require("../models/clioToken"));
 // --------------------------
 const redirectToClioLogin = (req, res) => {
     const { CLIO_CLIENT_ID, CLIO_REDIRECT_URI } = process.env;
+    // Debug logs
+    console.log("🌍 redirectToClioLogin called");
+    console.log("Sending client_id:", CLIO_CLIENT_ID);
+    console.log("Redirect URI:", CLIO_REDIRECT_URI);
     if (!CLIO_CLIENT_ID || !CLIO_REDIRECT_URI) {
         return res.status(500).send("❌ Clio client ID or redirect URI not set");
     }
-    const authURL = `https://app.clio.com/oauth/authorize?response_type=code&client_id=${CLIO_CLIENT_ID}&redirect_uri=${encodeURIComponent(CLIO_REDIRECT_URI)}&scope=read write openid profile email`;
+    // Adjust endpoint if using sandbox
+    const clioAuthBase = process.env.CLIO_ENV === "sandbox"
+        ? "https://app-sandbox.clio.com/oauth/authorize"
+        : "https://app.clio.com/oauth/authorize";
+    const authURL = `${clioAuthBase}?response_type=code&client_id=${CLIO_CLIENT_ID}&redirect_uri=${encodeURIComponent(CLIO_REDIRECT_URI)}&scope=read write openid profile email`;
     console.log("🌍 Redirecting to Clio:", authURL);
     res.redirect(authURL);
 };
@@ -28,7 +36,7 @@ const handleClioCallback = async (req, res) => {
         return res.status(500).send("❌ Clio environment variables missing");
     }
     try {
-        // Use Basic Auth for client credentials
+        console.log("🌍 Exchanging code for token with Clio");
         const params = new URLSearchParams();
         params.append("grant_type", "authorization_code");
         params.append("code", code);

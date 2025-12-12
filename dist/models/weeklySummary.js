@@ -56,9 +56,9 @@ const WeeklySummarySchema = new mongoose_1.Schema({
         required: true,
     },
 }, {
-    timestamps: true, // adds createdAt and updatedAt automatically
+    timestamps: true, // adds createdAt + updatedAt
 });
-// ✅ Virtual field to show formatted date (optional)
+// OPTIONAL → Nicely formatted date (DD-MM-YYYY)
 WeeklySummarySchema.virtual("formattedDate").get(function () {
     if (!this.createdAt)
         return "";

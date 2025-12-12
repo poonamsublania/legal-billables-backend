@@ -4,8 +4,8 @@ export interface IWeeklySummary extends Document {
   clientEmail: string;
   summary: string;
   subject?: string;
-  date: string; // formatted like "27-10-2025"
-  day: string;  // e.g., "Monday"
+  date: string; // "27-11-2025"
+  day: string;  // "Monday"
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -34,11 +34,11 @@ const WeeklySummarySchema: Schema = new Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt and updatedAt automatically
+    timestamps: true, // adds createdAt + updatedAt
   }
 );
 
-// ✅ Virtual field to show formatted date (optional)
+// OPTIONAL → Nicely formatted date (DD-MM-YYYY)
 WeeklySummarySchema.virtual("formattedDate").get(function (this: IWeeklySummary) {
   if (!this.createdAt) return "";
   const d = new Date(this.createdAt);

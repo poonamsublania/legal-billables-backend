@@ -6,14 +6,17 @@ import {
 
 const router = express.Router();
 
-// --------------------
-// 🧠 GPT Weekly Summaries
-// --------------------
+/**
+ * -------------------------------------------
+ * 🧠 GPT Weekly Summaries Routes
+ * Base Path: /api/weekly-summary
+ * -------------------------------------------
+ */
 
-// ✅ Save a GPT-generated summary
+// Save a GPT-generated weekly summary
 router.post("/", saveWeeklySummary);
 
-// ✅ Fetch all summaries grouped by date
+// Get all summaries grouped by date
 router.get("/", getWeeklySummaries);
 
 export default router;
