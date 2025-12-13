@@ -49,7 +49,6 @@ app.get("/test", (_req, res) => {
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const gptRoutes_1 = __importDefault(require("./routes/gptRoutes"));
 const clioRoutes_1 = __importDefault(require("./routes/clioRoutes"));
-const billingRoutes_1 = __importDefault(require("./routes/billingRoutes"));
 const clientsRoutes_1 = __importDefault(require("./routes/clientsRoutes"));
 const emailRoutes_1 = __importDefault(require("./routes/emailRoutes"));
 const weeklySummaryRoutes_1 = __importDefault(require("./routes/weeklySummaryRoutes"));
@@ -59,11 +58,11 @@ const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
 const clioTest_1 = __importDefault(require("./routes/clioTest"));
 const clioLog_1 = __importDefault(require("./routes/clioLog"));
 const addonCache_1 = __importDefault(require("./routes/addonCache"));
+const emailLatest_1 = __importDefault(require("./routes/emailLatest"));
 // ⭐ Clio OAuth MUST be root
 app.use("/", clioRoutes_1.default);
 app.use("/auth", authRoutes_1.default);
 app.use("/api/gpt", gptRoutes_1.default);
-app.use("/api/billing", billingRoutes_1.default);
 app.use("/api/clients", clientsRoutes_1.default);
 app.use("/api/emails", emailRoutes_1.default);
 app.use("/api/weekly-summary", weeklySummaryRoutes_1.default);
@@ -73,6 +72,7 @@ app.use("/api/team", teamRoutes_1.default);
 app.use("/api/clio", clioTest_1.default);
 app.use("/api/clio", clioLog_1.default);
 app.use("/api/emails", addonCache_1.default);
+app.use("/api/emails", emailLatest_1.default);
 // ----------------------------
 // 404
 // ----------------------------

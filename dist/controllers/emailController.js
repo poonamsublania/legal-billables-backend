@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLatestEmail = exports.getGeneratedEmail = exports.getAllEmails = exports.saveEmail = exports.getAllEmailEntries = exports.createEmailEntry = void 0;
+exports.getGeneratedEmail = exports.getAllEmails = exports.saveEmail = exports.getAllEmailEntries = exports.createEmailEntry = void 0;
 const emailEntry_1 = __importDefault(require("../models/emailEntry")); // Dashboard entries
 const email_1 = __importDefault(require("../models/email")); // Actual emails storage
 const openaiService_1 = require("../services/openaiService");
@@ -159,27 +159,3 @@ exports.getGeneratedEmail = getGeneratedEmail;
 // =====================================================
 // 🆕 GET LATEST EMAIL ENTRY (For Gmail Add-on / Extension)
 // =====================================================
-// 📥 Get latest EmailEntry (most recent)
-const getLatestEmail = async (_req, res) => {
-    try {
-        const latest = await emailEntry_1.default.findOne().sort({ _id: -1 });
-        if (!latest) {
-            return res.status(404).json({
-                success: false,
-                message: "No email entries found",
-            });
-        }
-        res.json({
-            success: true,
-            entry: latest,
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Server error",
-            error: error.message,
-        });
-    }
-};
-exports.getLatestEmail = getLatestEmail;
