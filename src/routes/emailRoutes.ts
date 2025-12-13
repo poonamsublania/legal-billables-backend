@@ -6,8 +6,6 @@ import {
   getGeneratedEmail,
   saveEmail,
   getAllEmails,
-  getLatestEmail, // ✅ ADD THIS
-
 } from "../controllers/emailController";
 
 const router = express.Router();
@@ -32,7 +30,6 @@ router.get("/", getAllEmails);
 // Save a new email (actual content)
 router.post("/", saveEmail);
 
-router.get("/latest", getLatestEmail);
 
 
 // --------------------

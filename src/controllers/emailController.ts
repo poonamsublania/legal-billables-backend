@@ -173,27 +173,3 @@ export const getGeneratedEmail = async (req: Request, res: Response) => {
 // =====================================================
 // 🆕 GET LATEST EMAIL ENTRY (For Gmail Add-on / Extension)
 // =====================================================
-// 📥 Get latest EmailEntry (most recent)
-export const getLatestEmail = async (_req: Request, res: Response) => {
-  try {
-    const latest = await EmailEntry.findOne().sort({ _id: -1 });
-
-    if (!latest) {
-      return res.status(404).json({
-        success: false,
-        message: "No email entries found",
-      });
-    }
-
-    res.json({
-      success: true,
-      entry: latest,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};

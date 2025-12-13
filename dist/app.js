@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/app.ts
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
@@ -11,9 +10,6 @@ const cors_1 = __importDefault(require("cors"));
 const path_1 = __importDefault(require("path"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const db_1 = require("./config/db");
-// ----------------------------
-// Initialize App
-// ----------------------------
 const app = (0, express_1.default)();
 const PORT = parseInt(process.env.PORT || "5000", 10);
 // ----------------------------
@@ -39,7 +35,7 @@ app.use(body_parser_1.default.json());
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // ----------------------------
-// Health Check Routes
+// Health Check
 // ----------------------------
 app.get("/", (_req, res) => {
     res.send("🚀 Legal Billables Backend Running Successfully");
@@ -48,54 +44,43 @@ app.get("/test", (_req, res) => {
     res.json({ message: "✅ Test route working" });
 });
 // ----------------------------
-// Import Routes
+// Routes
 // ----------------------------
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const gptRoutes_1 = __importDefault(require("./routes/gptRoutes"));
 const clioRoutes_1 = __importDefault(require("./routes/clioRoutes"));
-const billingRoutes_1 = __importDefault(require("./routes/billingRoutes")); // ✅ new file
-const mockClioRoutes_1 = __importDefault(require("./routes/mockClioRoutes"));
+const billingRoutes_1 = __importDefault(require("./routes/billingRoutes"));
 const clientsRoutes_1 = __importDefault(require("./routes/clientsRoutes"));
 const emailRoutes_1 = __importDefault(require("./routes/emailRoutes"));
 const weeklySummaryRoutes_1 = __importDefault(require("./routes/weeklySummaryRoutes"));
 const manualRoutes_1 = __importDefault(require("./routes/manualRoutes"));
 const caseRoutes_1 = __importDefault(require("./routes/caseRoutes"));
 const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
-// ----------------------------
-// Load Routes
-// ----------------------------
-app.use("/api/auth", authRoutes_1.default);
+const clioTest_1 = __importDefault(require("./routes/clioTest"));
+const clioLog_1 = __importDefault(require("./routes/clioLog"));
+const addonCache_1 = __importDefault(require("./routes/addonCache"));
+// ⭐ Clio OAuth MUST be root
+app.use("/", clioRoutes_1.default);
+app.use("/auth", authRoutes_1.default);
 app.use("/api/gpt", gptRoutes_1.default);
-app.use("/api/clio", clioRoutes_1.default);
-app.use("/api/billing", billingRoutes_1.default); // ⭐ Add real time entry route
-app.use("/api/mock-clio", mockClioRoutes_1.default);
+app.use("/api/billing", billingRoutes_1.default);
 app.use("/api/clients", clientsRoutes_1.default);
 app.use("/api/emails", emailRoutes_1.default);
 app.use("/api/weekly-summary", weeklySummaryRoutes_1.default);
 app.use("/api/manual", manualRoutes_1.default);
 app.use("/api/cases", caseRoutes_1.default);
 app.use("/api/team", teamRoutes_1.default);
-console.log("✅ Mounted routes:", [
-    "/api/auth",
-    "/api/gpt",
-    "/api/clio",
-    "/api/billing",
-    "/api/mock-clio",
-    "/api/clients",
-    "/api/emails",
-    "/api/weekly-summary",
-    "/api/manual",
-    "/api/cases",
-    "/api/team",
-]);
+app.use("/api/clio", clioTest_1.default);
+app.use("/api/clio", clioLog_1.default);
+app.use("/api/emails", addonCache_1.default);
 // ----------------------------
-// 404 Handler
+// 404
 // ----------------------------
 app.use((_req, res) => {
     res.status(404).json({ error: "Route not found" });
 });
 // ----------------------------
-// Connect DB THEN start server
+// Start Server
 // ----------------------------
 (async () => {
     try {
@@ -112,7 +97,7 @@ app.use((_req, res) => {
     }
 })();
 // ----------------------------
-// Optional Frontend Hosting
+// Frontend Hosting (optional)
 // ----------------------------
 app.use(express_1.default.static(path_1.default.resolve(__dirname, "../../frontend/dist")));
 app.get(/.*/, (_req, res) => res.sendFile(path_1.default.resolve(__dirname, "../../frontend/dist/index.html")));

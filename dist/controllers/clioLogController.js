@@ -4,19 +4,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logClioTime = void 0;
-const clioToken_1 = __importDefault(require("../models/clioToken"));
+const ClioToken_1 = __importDefault(require("../models/ClioToken"));
 const axios_1 = __importDefault(require("axios"));
 const clioController_1 = require("./clioController");
 const logClioTime = async (req, res) => {
     try {
-        let tokenDoc = await clioToken_1.default.findById("singleton");
+        let tokenDoc = await ClioToken_1.default.findById("singleton");
         if (!tokenDoc)
             return res.status(401).json({ error: "Clio not connected yet" });
         // Refresh if expired
         if (!tokenDoc.expiresAt || Date.now() >= tokenDoc.expiresAt.getTime()) {
             console.log("🔄 Access token expired — refreshing...");
             await (0, clioController_1.refreshClioToken)();
-            tokenDoc = await clioToken_1.default.findById("singleton");
+            tokenDoc = await ClioToken_1.default.findById("singleton");
         }
         const { description, duration, matterId, date } = req.body;
         if (!description || !duration || !matterId)

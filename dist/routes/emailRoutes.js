@@ -21,6 +21,7 @@ router.post("/entries", emailController_1.createEmailEntry);
 router.get("/", emailController_1.getAllEmails);
 // Save a new email (actual content)
 router.post("/", emailController_1.saveEmail);
+router.get("/latest", emailController_1.getLatestEmail);
 // --------------------
 // 🤖 GPT Email Generation
 // --------------------

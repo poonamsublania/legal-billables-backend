@@ -6,10 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const manualController_1 = require("../controllers/manualController");
 const router = express_1.default.Router();
-// ✅ Create manual entry
-router.post("/", manualController_1.createManualEntry);
-// ✅ Get all entries
-router.get("/", manualController_1.getManualEntries);
-// ✅ Delete manual entry
+// POST /manual/create
+router.post("/create", manualController_1.createManualEntry);
+// GET /manual/all
+router.get("/all", manualController_1.getManualEntries);
+// DELETE /manual/:id
 router.delete("/:id", manualController_1.deleteManualEntry);
 exports.default = router;

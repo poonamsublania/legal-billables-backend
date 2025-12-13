@@ -53,7 +53,6 @@ app.get("/test", (_req: Request, res: Response) => {
 import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
 import clioRoutes from "./routes/clioRoutes";
-import billingRoutes from "./routes/billingRoutes";
 import clientsRoutes from "./routes/clientsRoutes";
 import emailRoutes from "./routes/emailRoutes";
 import weeklySummaryRoutes from "./routes/weeklySummaryRoutes";
@@ -63,13 +62,13 @@ import teamRoutes from "./routes/teamRoutes";
 import clioTestRoutes from "./routes/clioTest";
 import clioLogRoutes from "./routes/clioLog";
 import addonCacheRoutes from "./routes/addonCache";
+import emailLatestRoutes from "./routes/emailLatest";
 
 // ⭐ Clio OAuth MUST be root
 app.use("/", clioRoutes);
 
 app.use("/auth", authRoutes);
 app.use("/api/gpt", gptRoutes);
-app.use("/api/billing", billingRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/emails", emailRoutes);
 app.use("/api/weekly-summary", weeklySummaryRoutes);
@@ -79,6 +78,7 @@ app.use("/api/team", teamRoutes);
 app.use("/api/clio", clioTestRoutes);
 app.use("/api/clio", clioLogRoutes);
 app.use("/api/emails", addonCacheRoutes);
+app.use("/api/emails", emailLatestRoutes);
 
 // ----------------------------
 // 404

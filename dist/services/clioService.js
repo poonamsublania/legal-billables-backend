@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createClioTimeEntry = exports.getClioAccessToken = exports.refreshClioToken = void 0;
 // src/services/clioService.ts
 const axios_1 = __importDefault(require("axios"));
-const clioToken_1 = __importDefault(require("../models/clioToken"));
+const ClioToken_1 = __importDefault(require("../models/ClioToken"));
 const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
 // ------------------------
 // 🔍 Check token expiry
@@ -21,7 +21,7 @@ const isTokenExpired = (expiresAt) => {
 // ------------------------
 const refreshClioToken = async () => {
     try {
-        const tokenDoc = await clioToken_1.default.findOne({ _id: "singleton" });
+        const tokenDoc = await ClioToken_1.default.findOne({ _id: "singleton" });
         if (!tokenDoc?.refreshToken) {
             console.error("[ClioService] ❌ No refresh token found in DB");
             return null;
@@ -53,7 +53,7 @@ exports.refreshClioToken = refreshClioToken;
 // ------------------------
 const getClioAccessToken = async () => {
     try {
-        const tokenDoc = await clioToken_1.default.findOne({ _id: "singleton" });
+        const tokenDoc = await ClioToken_1.default.findOne({ _id: "singleton" });
         if (!tokenDoc?.accessToken) {
             console.warn("[ClioService] ⚠️ No Clio access token — refreshing…");
             return await (0, exports.refreshClioToken)();

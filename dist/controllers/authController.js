@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleClioCallback = exports.redirectToClioLogin = void 0;
 const axios_1 = __importDefault(require("axios"));
-const clioToken_1 = __importDefault(require("../models/clioToken"));
+const ClioToken_1 = __importDefault(require("../models/ClioToken"));
 // --------------------------
 // Step 1: Redirect user to Clio OAuth
 // --------------------------
@@ -50,7 +50,7 @@ const handleClioCallback = async (req, res) => {
         });
         const { access_token, refresh_token, expires_in } = response.data;
         // Save token in MongoDB
-        const savedToken = await clioToken_1.default.findOneAndUpdate({ _id: "singleton" }, {
+        const savedToken = await ClioToken_1.default.findOneAndUpdate({ _id: "singleton" }, {
             clioAccessToken: access_token,
             clioRefreshToken: refresh_token,
             clioTokenExpiry: Date.now() + expires_in * 1000,

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTimeEntry = void 0;
 const axios_1 = __importDefault(require("axios"));
-const clioToken_1 = __importDefault(require("../models/clioToken"));
+const ClioToken_1 = __importDefault(require("../models/ClioToken"));
 const clioController_1 = require("./clioController");
 const createTimeEntry = async (req, res) => {
     try {
@@ -19,7 +19,7 @@ const createTimeEntry = async (req, res) => {
             });
         }
         // Get token from DB
-        let tokenDoc = await clioToken_1.default.findById("singleton");
+        let tokenDoc = await ClioToken_1.default.findById("singleton");
         if (!tokenDoc) {
             console.log("❌ No Clio token exists in DB");
             return res.status(400).json({ error: "No Clio API token stored in backend" });
@@ -28,7 +28,7 @@ const createTimeEntry = async (req, res) => {
         if (new Date() >= new Date(tokenDoc.expiresAt)) {
             console.log("🔄 Token expired. Refreshing now...");
             await (0, clioController_1.refreshClioToken)();
-            tokenDoc = await clioToken_1.default.findById("singleton"); // reload
+            tokenDoc = await ClioToken_1.default.findById("singleton"); // reload
         }
         const accessToken = tokenDoc.accessToken;
         // Format payload for Clio v4 API
