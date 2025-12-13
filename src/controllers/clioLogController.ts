@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import ClioTokenModel, { IClioToken } from "../models/clioToken";
+import ClioTokenModel, { IClioToken } from "../models/ClioToken";
 import axios from "axios";
 import { refreshClioToken } from "./clioController";
 

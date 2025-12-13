@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioToken from "../models/clioToken";
+import ClioToken from "../models/ClioToken";
 
 // --------------------------
 // Step 1: Redirect user to Clio OAuth

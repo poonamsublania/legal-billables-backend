@@ -1,7 +1,7 @@
 // src/controllers/billingController.ts
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioTokenModel from "../models/clioToken";
+import ClioTokenModel from "../models/ClioToken";
 import { refreshClioToken } from "./clioController";
 
 export const createTimeEntry = async (req: Request, res: Response) => {

@@ -1,4 +1,3 @@
-// src/app.ts
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -8,9 +7,6 @@ import path from "path";
 import bodyParser from "body-parser";
 import { connectDB } from "./config/db";
 
-// ----------------------------
-// Initialize App
-// ----------------------------
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
@@ -41,7 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ----------------------------
-// Health Check Routes
+// Health Check
 // ----------------------------
 app.get("/", (_req: Request, res: Response) => {
   res.send("🚀 Legal Billables Backend Running Successfully");
@@ -52,61 +48,47 @@ app.get("/test", (_req: Request, res: Response) => {
 });
 
 // ----------------------------
-// Import Routes
+// Routes
 // ----------------------------
 import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
 import clioRoutes from "./routes/clioRoutes";
-import billingRoutes from "./routes/billingRoutes";   // ✅ new file
-import mockClioRoutes from "./routes/mockClioRoutes";
+import billingRoutes from "./routes/billingRoutes";
 import clientsRoutes from "./routes/clientsRoutes";
 import emailRoutes from "./routes/emailRoutes";
 import weeklySummaryRoutes from "./routes/weeklySummaryRoutes";
 import manualRoutes from "./routes/manualRoutes";
 import caseRoutes from "./routes/caseRoutes";
 import teamRoutes from "./routes/teamRoutes";
+import clioTestRoutes from "./routes/clioTest";
+import clioLogRoutes from "./routes/clioLog";
+import addonCacheRoutes from "./routes/addonCache";
 
+// ⭐ Clio OAuth MUST be root
+app.use("/", clioRoutes);
 
-
-// ----------------------------
-// Load Routes
-// ----------------------------
 app.use("/auth", authRoutes);
 app.use("/api/gpt", gptRoutes);
-app.use("/clio", clioRoutes);
-app.use("/api/billing", billingRoutes);   // ⭐ Add real time entry route
-app.use("/api/mock-clio", mockClioRoutes);
+app.use("/api/billing", billingRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/emails", emailRoutes);
 app.use("/api/weekly-summary", weeklySummaryRoutes);
 app.use("/api/manual", manualRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/team", teamRoutes);
-
-
-console.log("✅ Mounted routes:", [
-  "auth",
-  "/api/gpt",
-  "clio",
-  "/api/billing",
-  "/api/mock-clio",
-  "/api/clients",
-  "/api/emails",
-  "/api/weekly-summary",
-  "/api/manual",
-  "/api/cases",
-  "/api/team",
-]);
+app.use("/api/clio", clioTestRoutes);
+app.use("/api/clio", clioLogRoutes);
+app.use("/api/emails", addonCacheRoutes);
 
 // ----------------------------
-// 404 Handler
+// 404
 // ----------------------------
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Route not found" });
 });
 
 // ----------------------------
-// Connect DB THEN start server
+// Start Server
 // ----------------------------
 (async () => {
   try {
@@ -124,7 +106,7 @@ app.use((_req: Request, res: Response) => {
 })();
 
 // ----------------------------
-// Optional Frontend Hosting
+// Frontend Hosting (optional)
 // ----------------------------
 app.use(express.static(path.resolve(__dirname, "../../frontend/dist")));
 app.get(/.*/, (_req, res) =>

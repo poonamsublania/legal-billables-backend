@@ -1,6 +1,8 @@
 // src/routes/clioRoutes.ts
-import express, { Request, Response } from "express";
+import express from "express";
 import {
+  clioLogin,
+  clioCallback,
   saveOrUpdateClioToken,
   getClioToken,
 } from "../controllers/clioController";
@@ -8,9 +10,23 @@ import {
 const router = express.Router();
 
 /**
- * Save token (manual testing only)
+ * Step 1 – Redirect user to Clio OAuth login
+ * URL: /auth/clio/login
  */
-router.post("/save-token", async (req: Request, res: Response) => {
+router.get("/auth/clio/login", clioLogin);
+
+/**
+ * Step 2 – Handle OAuth callback
+ * URL inside Clio Developer Portal:
+ * http://127.0.0.1:5000/auth/clio/callback
+ */
+router.get("/auth/clio/callback", clioCallback);
+
+/**
+ * Manual token save (only for testing)
+ * URL: /clio/save-token
+ */
+router.post("/clio/save-token", async (req, res) => {
   try {
     const { access_token, refresh_token, expires_in } = req.body;
 
@@ -24,16 +40,17 @@ router.post("/save-token", async (req: Request, res: Response) => {
       expires_in,
     });
 
-    return res.json({ success: true, saved });
+    res.json({ success: true, saved });
   } catch (err: any) {
     console.error("❌ Failed to save token:", err.message);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
 /**
  * Get stored token
+ * URL: /clio/token
  */
-router.get("/token", getClioToken);
+router.get("/clio/token", getClioToken);
 
 export default router;

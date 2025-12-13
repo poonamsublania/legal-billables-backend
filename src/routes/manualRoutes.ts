@@ -7,13 +7,13 @@ import {
 
 const router = express.Router();
 
-// ✅ Create manual entry
-router.post("/", createManualEntry);
+// POST /manual/create
+router.post("/create", createManualEntry);
 
-// ✅ Get all entries
-router.get("/", getManualEntries);
+// GET /manual/all
+router.get("/all", getManualEntries);
 
-// ✅ Delete manual entry
+// DELETE /manual/:id
 router.delete("/:id", deleteManualEntry);
 
 export default router;
