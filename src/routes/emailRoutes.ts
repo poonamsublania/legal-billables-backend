@@ -40,6 +40,5 @@ router.post("/", saveEmail);
 // Generate GPT-based email
 router.post("/generate", getGeneratedEmail);
 
-router.post("/emails/addon", saveAddonEmail);
 
 export default router;
