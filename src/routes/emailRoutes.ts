@@ -1,6 +1,6 @@
 // backend/src/routes/emailRoutes.ts
 import express from "express";
-import { saveAddonEmail } from "../controllers/addonEmailController";
+import { saveAddonEmailEntry } from "../controllers/addonEmailController";
 import {
   createEmailEntry,
   getAllEmailEntries,

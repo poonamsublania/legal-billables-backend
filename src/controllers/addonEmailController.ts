@@ -1,28 +1,55 @@
 import { Request, Response } from "express";
-import EmailEntry from "../models/emailEntry";
+import AddonEmailEntry from "../models/addonEmailEntry";
 
 /**
- * POST /api/emails/addon
- * Always creates a NEW entry (never update)
+ * POST /api/addon/save
  */
-export const saveAddonEmail = async (req: Request, res: Response) => {
+export const saveAddonEmailEntry = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const entry = new EmailEntry({
-      ...req.body,
-      createdAt: new Date(),
+    console.log("📨 ADDON SAVE BODY:", req.body);
+
+    const entry = await AddonEmailEntry.create({
+      subject: req.body.subject,
+      clientEmail: req.body.clientEmail,
+      date: req.body.date,
+      trackedTime: req.body.trackedTime,
+      summary: req.body.summary, // 🔥 IMPORTANT
+      status: "Pending",
     });
 
-    await entry.save();
+    return res.json({ success: true, data: entry });
+  } catch (err) {
+    console.error("❌ Addon save error:", err);
+    return res.status(500).json({ success: false });
+  }
+};
+
+/**
+ * GET /api/addon/latest
+ */
+export const getLatestAddonEmailEntry = async (
+  _req: Request,
+  res: Response
+) => {
+  try {
+    const latest = await AddonEmailEntry
+      .findOne()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!latest) {
+      return res.json({ success: false });
+    }
 
     return res.json({
       success: true,
-      data: entry,
+      data: latest,
     });
   } catch (err) {
-    console.error("❌ Add-on save failed:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Add-on save failed",
-    });
+    console.error("❌ Addon latest error:", err);
+    return res.status(500).json({ success: false });
   }
 };

@@ -50,6 +50,7 @@ app.get("/test", (_req: Request, res: Response) => {
 // ----------------------------
 // Routes
 // ----------------------------
+
 import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
 import clioRoutes from "./routes/clioRoutes";
@@ -61,8 +62,9 @@ import caseRoutes from "./routes/caseRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import clioTestRoutes from "./routes/clioTest";
 import clioLogRoutes from "./routes/clioLog";
-import addonCacheRoutes from "./routes/addonCache";
-import emailLatestRoutes from "./routes/emailLatest";
+import addonEmailRoutes from "./routes/addonEmailRoutes";
+
+
 
 // ⭐ Clio OAuth MUST be root
 app.use("/", clioRoutes);
@@ -77,8 +79,7 @@ app.use("/api/cases", caseRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/clio", clioTestRoutes);
 app.use("/api/clio", clioLogRoutes);
-app.use("/api/emails", addonCacheRoutes);
-app.use("/api/emails", emailLatestRoutes);
+app.use("/api", addonEmailRoutes);
 
 // ----------------------------
 // 404
