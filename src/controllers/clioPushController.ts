@@ -1,50 +1,104 @@
-import { Request, Response } from "express";
 import axios from "axios";
-import ClioToken from "../models/ClioToken"; // your existing token model
+import { Request, Response } from "express";
+import ClioToken from "../models/ClioToken";
 
 export const pushToClio = async (req: Request, res: Response) => {
   try {
-    const { trackedTime, summary, subject } = req.body;
+    const {
+      trackedTime,
+      summary,
+      subject,
+      matterId,
+      userId,
+    } = req.body;
 
-    // 🔐 Get stored token
-    const token = await ClioToken.findOne({ _id: "singleton" });
-    if (!token) {
-      return res.status(401).json({ success: false, message: "No Clio token" });
+    // -----------------------------
+    // Validation
+    // -----------------------------
+    if (!trackedTime || !summary || !subject || !matterId || !userId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields",
+      });
     }
 
-    // ⏱ Convert "25s" → minutes (Clio needs minutes)
-    const seconds = parseInt(trackedTime.replace("s", ""), 10);
-    const minutes = Math.max(1, Math.ceil(seconds / 60));
+    // -----------------------------
+    // Convert seconds → hours
+    // -----------------------------
+    const seconds =
+      parseInt(String(trackedTime).replace("s", ""), 10) || 0;
 
-    // 🚀 Push activity to Clio
-    const clioRes = await axios.post(
-      "https://app.clio.com/api/v4/activities",
-      {
-        data: {
-          type: "Activity",
-          subject: subject || "Email work",
-          note: summary,
-          quantity: minutes,
-          price: 0,
-          matter: { id: 1749275048 },
-          user: { id: 358719653 }
-        }
+    const hours = Math.max(seconds / 3600, 0.01);
+
+    // -----------------------------
+    // Get token from DB
+    // -----------------------------
+    const tokenDoc = await ClioToken.findOne({});
+
+    if (!tokenDoc) {
+      return res.status(401).json({
+        success: false,
+        error: "Clio token not found",
+      });
+    }
+
+    // ✅ ONLY THIS — NO access_token ANYWHERE
+    const accessToken = tokenDoc.accessToken;
+
+    // -----------------------------
+    // Clio payload
+    // -----------------------------
+    const payload = {
+      data: {
+        type: "TimeEntry",
+        attributes: {
+          quantity: Number(hours.toFixed(2)),
+          note: `${subject}\n\n${summary}`,
+        },
+        relationships: {
+          matter: {
+            data: {
+              type: "Matter",
+              id: String(matterId),
+            },
+          },
+          user: {
+            data: {
+              type: "User",
+              id: String(userId),
+            },
+          },
+        },
       },
+    };
+
+    // -----------------------------
+    // Push to Clio
+    // -----------------------------
+    const clioRes = await axios.post(
+      "https://app.clio.com/api/v4/time_entries",
+      payload,
       {
         headers: {
-          Authorization: `Bearer ${token.accessToken}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
     return res.json({
       success: true,
-      clioActivityId: clioRes.data.data.id
+      clio: clioRes.data,
     });
-
   } catch (err: any) {
-    console.error("❌ Push to Clio failed:", err.response?.data || err);
-    return res.status(500).json({ success: false });
+    console.error(
+      "❌ Clio push failed:",
+      err.response?.data || err.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: err.response?.data || err.message,
+    });
   }
 };
