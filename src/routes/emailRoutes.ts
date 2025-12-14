@@ -1,5 +1,6 @@
 // backend/src/routes/emailRoutes.ts
 import express from "express";
+import { saveAddonEmail } from "../controllers/addonEmailController";
 import {
   createEmailEntry,
   getAllEmailEntries,
@@ -38,5 +39,7 @@ router.post("/", saveEmail);
 
 // Generate GPT-based email
 router.post("/generate", getGeneratedEmail);
+
+router.post("/emails/addon", saveAddonEmail);
 
 export default router;
