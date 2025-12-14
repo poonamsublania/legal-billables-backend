@@ -22,22 +22,19 @@ export const getLatestEmailEntry = async (
       });
     }
 
-    // ✅ Normalize response for Gmail Add-on
     const responsePayload = {
-      subject: latest.subject || "",
-      trackedTime: latest.trackedTime || "0s",
+  subject: latest.subject || "",
+  trackedTime: latest.trackedTime || "0s",
+  summary:
+    typeof (latest as any).summary === "string" &&
+    (latest as any).summary.trim().length > 0
+      ? (latest as any).summary
+      : "",
+  clientEmail: latest.clientEmail || "",
+  date: latest.date || "",
+  status: latest.status || "Pending",
+};
 
-      // 👉 SUMMARY HANDLING (safe + flexible)
-      summary:
-        (latest as any).summary ||        // if exists
-        (latest as any).gptSummary ||     // alternate key
-        latest.status ||                  // fallback
-        "",
-
-      clientEmail: latest.clientEmail || "",
-      date: latest.date || "",
-      status: latest.status || "Pending",
-    };
 
     return res.json({
       success: true,

@@ -11,21 +11,35 @@ const emailEntry_1 = __importDefault(require("../models/emailEntry"));
  */
 const getLatestEmailEntry = async (_req, res) => {
     try {
-        const latest = await emailEntry_1.default.findOne().sort({ _id: -1 });
+        const latest = await emailEntry_1.default
+            .findOne()
+            .sort({ _id: -1 })
+            .lean();
         if (!latest) {
             return res.status(404).json({
                 success: false,
                 message: "No email entries found",
             });
         }
-        res.json({
+        const responsePayload = {
+            subject: latest.subject || "",
+            trackedTime: latest.trackedTime || "0s",
+            summary: typeof latest.summary === "string" &&
+                latest.summary.trim().length > 0
+                ? latest.summary
+                : "",
+            clientEmail: latest.clientEmail || "",
+            date: latest.date || "",
+            status: latest.status || "Pending",
+        };
+        return res.json({
             success: true,
-            data: latest,
+            data: responsePayload,
         });
     }
     catch (error) {
         console.error("❌ Error fetching latest email entry:", error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Server error",
         });
