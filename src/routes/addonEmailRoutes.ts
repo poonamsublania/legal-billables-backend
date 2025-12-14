@@ -3,12 +3,12 @@ import {
   saveAddonEmailEntry,
   getLatestAddonEmailEntry,
 } from "../controllers/addonEmailController";
-import { pushAddonToClio } from "../controllers/clioPushController";
+import { pushToClio } from "../controllers/clioPushController";
 
 const router = express.Router();
 
 router.post("/addon/save", saveAddonEmailEntry);
 router.get("/addon/latest", getLatestAddonEmailEntry);
-router.post("/clio/push-addon", pushAddonToClio);
+router.post("/clio/push-addon", pushToClio);
 
 export default router;

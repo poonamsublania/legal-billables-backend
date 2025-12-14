@@ -7,6 +7,9 @@ import {
   getClioToken,
 } from "../controllers/clioController";
 
+// 🔥 ADD THIS IMPORT
+import { pushToClio } from "../controllers/clioPushController";
+
 const router = express.Router();
 
 /**
@@ -52,5 +55,11 @@ router.post("/clio/save-token", async (req, res) => {
  * URL: /clio/token
  */
 router.get("/clio/token", getClioToken);
+
+/**
+ * 🚀 PUSH TRACKED TIME TO CLIO
+ * URL: /api/clio/push-time
+ */
+router.post("/clio/push-time", pushToClio);
 
 export default router;

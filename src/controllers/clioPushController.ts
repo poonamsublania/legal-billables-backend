@@ -1,35 +1,50 @@
 import { Request, Response } from "express";
 import axios from "axios";
-import ClioToken from "../models/ClioToken";
+import ClioToken from "../models/ClioToken"; // your existing token model
 
-export const pushAddonToClio = async (req: Request, res: Response) => {
+export const pushToClio = async (req: Request, res: Response) => {
   try {
+    const { trackedTime, summary, subject } = req.body;
+
+    // 🔐 Get stored token
     const token = await ClioToken.findOne({ _id: "singleton" });
     if (!token) {
-      return res.status(401).json({ success: false });
+      return res.status(401).json({ success: false, message: "No Clio token" });
     }
 
-    const seconds = parseInt(req.body.trackedTime.replace("s", ""));
-    const hours = seconds / 3600;
+    // ⏱ Convert "25s" → minutes (Clio needs minutes)
+    const seconds = parseInt(trackedTime.replace("s", ""), 10);
+    const minutes = Math.max(1, Math.ceil(seconds / 60));
 
-    await axios.post(
+    // 🚀 Push activity to Clio
+    const clioRes = await axios.post(
       "https://app.clio.com/api/v4/activities",
       {
-        type: "TimeEntry",
-        quantity: hours,
-        price: 0,
-        description: req.body.summary,
+        data: {
+          type: "Activity",
+          subject: subject || "Email work",
+          note: summary,
+          quantity: minutes,
+          price: 0,
+          matter: { id: 1749275048 },
+          user: { id: 358719653 }
+        }
       },
       {
         headers: {
           Authorization: `Bearer ${token.accessToken}`,
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Clio push failed:", err);
-    res.status(500).json({ success: false });
+    return res.json({
+      success: true,
+      clioActivityId: clioRes.data.data.id
+    });
+
+  } catch (err: any) {
+    console.error("❌ Push to Clio failed:", err.response?.data || err);
+    return res.status(500).json({ success: false });
   }
 };
