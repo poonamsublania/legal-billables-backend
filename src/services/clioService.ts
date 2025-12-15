@@ -6,7 +6,7 @@
 import axios from "axios";
 import ClioTokenModel from "../models/ClioToken";
 
-const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
+const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://api.clio.com").replace(/\/+$/, "");
 
 // ------------------------
 // 🔍 Check token expiry
@@ -125,15 +125,15 @@ export const createClioTimeEntry = async ({
     };
 
     const response = await axios.post(
-      `${CLIO_BASE_URL}/api/v4/time_entries`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+  "https://api.clio.com/api/v4/time_entries",
+  payload,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
 
     console.log("[ClioService] ✅ Time entry created:", response.data);
     return response.data;
