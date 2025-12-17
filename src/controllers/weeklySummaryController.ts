@@ -157,3 +157,12 @@ export const getWeeklyLegalReports = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch weekly reports" });
   }
 };
+
+export const deleteWeeklySummary = async (req: Request, res: Response) => {
+  try {
+    await WeeklySummary.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

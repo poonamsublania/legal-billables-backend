@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // src/routes/clioRoutes.ts
 const express_1 = __importDefault(require("express"));
 const clioController_1 = require("../controllers/clioController");
+// 🔥 ADD THIS IMPORT
+const clioPushController_1 = require("../controllers/clioPushController");
 const router = express_1.default.Router();
 /**
  * Step 1 – Redirect user to Clio OAuth login
@@ -45,4 +47,9 @@ router.post("/clio/save-token", async (req, res) => {
  * URL: /clio/token
  */
 router.get("/clio/token", clioController_1.getClioToken);
+/**
+ * 🚀 PUSH TRACKED TIME TO CLIO
+ * URL: /api/clio/push-time
+ */
+router.post("/clio/push-time", clioPushController_1.pushToClio);
 exports.default = router;

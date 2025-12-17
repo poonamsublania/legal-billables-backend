@@ -1,12 +1,14 @@
 import mongoose from "mongoose";
 
-const ManualSchema = new mongoose.Schema(
-  {
-    description: { type: String, required: true },
-    timeSpent: { type: Number, required: true }, // stored in seconds
-    clioMatterId: { type: String },
-  },
-  { timestamps: true }
-);
+const ManualSchema = new mongoose.Schema({
+  category: String,
+  clientName: String,
+  caseName: String,
+  description: String,
+  duration: String,
+  timeSpent: Number,
+  date: String,
+  createdAt: Date,
+});
 
-export default mongoose.model("ManualEntry", ManualSchema);
+export default mongoose.model("Manual", ManualSchema);

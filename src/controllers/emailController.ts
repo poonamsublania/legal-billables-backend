@@ -7,169 +7,206 @@ import { generateGPTEmail } from "../services/openaiService";
 // 🕓 HELPER FUNCTIONS
 // =====================================================
 
-// Format date to "DD/MM/YYYY"
-const formatDate = (date: Date | string): string => {
-  const d = new Date(date);
+// Format date to ISO (SAFE for frontend)
+
+// Format date → DD/MM/YYYY (SAFE + CONSISTENT)
+const normalizeDate = (date?: Date | string): string => {
+  const d = date ? new Date(date) : new Date();
+  if (isNaN(d.getTime())) return "";
+
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
-  return `${day}/${month}/${year}`; // e.g., 10/11/2025
-};
 
-// Format tracked time into "Xs" or "Xm Ys"
-const formatTime = (seconds: number): string => {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+  return `${day}/${month}/${year}`;
 };
 
 // =====================================================
-// 📩 SECTION 1: EMAIL ENTRIES (Dashboard logging)
+// 🕓 HELPERS
 // =====================================================
 
-// 📨 Create a new EmailEntry
+// Date → DD/MM/YYYY
+const formatDate = (input?: string | Date) => {
+  const d = input ? new Date(input) : new Date();
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+// Seconds → 10s | 2m | 2m 10s
+const formatTime = (value?: number | string) => {
+  if (!value) return "0s";
+  if (typeof value === "string") return value;
+
+  if (value < 60) return `${value}s`;
+  const m = Math.floor(value / 60);
+  const s = value % 60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+};
+
+
+
+// =====================================================
+// 📩 SECTION 1: EMAIL ENTRIES (Dashboard)
+// =====================================================
+
+// ➕ Create Email Entry
 export const createEmailEntry = async (req: Request, res: Response) => {
   try {
     const { subject, clientEmail, date, trackedTime, status } = req.body;
 
-    if (!subject || subject.trim() === "") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Subject is required" });
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ success: false, message: "Subject required" });
     }
 
-    const formattedDate = formatDate(date || new Date());
-    const formattedTime =
-      typeof trackedTime === "number"
-        ? formatTime(trackedTime)
-        : trackedTime || "0s";
-
-    const newEntry = new EmailEntry({
+    const entry = new EmailEntry({
       subject,
       clientEmail: clientEmail || "Unknown Client",
-      date: formattedDate,
-      trackedTime: formattedTime,
+      date: normalizeDate(date),
+      trackedTime:
+        typeof trackedTime === "number"
+          ? formatTime(trackedTime)
+          : trackedTime || "0s",
       status: status === "Pushed" ? "Pushed" : "Pending",
     });
 
-    await newEntry.save();
-    console.log("✅ EmailEntry saved:", newEntry);
+    await entry.save();
 
-    res
-      .status(201)
-      .json({ success: true, message: "EmailEntry saved", entry: newEntry });
+    res.status(201).json({
+      success: true,
+      entry,
+    });
   } catch (error: any) {
-    console.error("❌ Error saving EmailEntry:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    console.error("❌ createEmailEntry:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 📋 Get all EmailEntries
+// 📋 Get all Email Entries
 export const getAllEmailEntries = async (_req: Request, res: Response) => {
   try {
-    const entries = await EmailEntry.find().sort({ _id: -1 });
-    console.log("📨 Fetched Email Entries:", entries.length);
-    res.json(entries);
+    const entries = await EmailEntry.find().sort({ date: -1 });
+    res.json({ success: true, entries });
   } catch (error: any) {
-    console.error("❌ Error fetching EmailEntries:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    console.error("❌ getAllEmailEntries:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ✏️ Update Email Entry
+export const updateEmailEntry = async (req: Request, res: Response) => {
+  try {
+    const updated = await EmailEntry.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, date: normalizeDate(req.body.date) },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Entry not found" });
+    }
+
+    res.json({ success: true, entry: updated });
+  } catch (error: any) {
+    console.error("❌ updateEmailEntry:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+// =====================================================
+// ❌ DELETE EMAIL ENTRY
+// =====================================================
+export const deleteEmailEntry = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await EmailEntry.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("deleteEmailEntry error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// 🆕 Get Latest Email Entry (Gmail Add-on / Extension)
+export const getLatestEmailEntry = async (_req: Request, res: Response) => {
+  try {
+    const latest = await EmailEntry.findOne().sort({ date: -1 });
+
+    if (!latest) {
+      return res.status(404).json({ success: false, message: "No entries found" });
+    }
+
+    res.json({ success: true, entry: latest });
+  } catch (error: any) {
+    console.error("❌ getLatestEmailEntry:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // =====================================================
-// 📧 SECTION 2: ACTUAL EMAILS (Backend storage)
+// 📧 SECTION 2: ACTUAL EMAIL STORAGE
 // =====================================================
 
-// 💾 Save a new email
+// ➕ Save Email
 export const saveEmail = async (req: Request, res: Response) => {
   try {
     const { subject, clientEmail, date, trackedTime } = req.body;
 
-    if (!subject || subject.trim() === "") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Subject is required" });
-    }
-
-    const formattedDate = formatDate(date || new Date());
-    const formattedTime =
-      typeof trackedTime === "number"
-        ? formatTime(trackedTime)
-        : trackedTime || "0s";
-
     const email = new Email({
       subject,
       clientEmail: clientEmail || "Unknown Client",
-      date: formattedDate,
-      trackedTime: formattedTime,
+      date: normalizeDate(date),
+      trackedTime:
+        typeof trackedTime === "number"
+          ? formatTime(trackedTime)
+          : trackedTime || "0s",
     });
 
     await email.save();
-    console.log("📨 Saved Email:", email);
-
     res.status(201).json({ success: true, email });
   } catch (error: any) {
-    console.error("❌ Error saving email:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    console.error("❌ saveEmail:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 📬 Get all emails
+// 📬 Get All Emails
 export const getAllEmails = async (_req: Request, res: Response) => {
   try {
     const emails = await Email.find().sort({ date: -1 });
-    console.log("📤 Fetched Emails:", emails.length);
     res.json({ success: true, emails });
   } catch (error: any) {
-    console.error("❌ Error fetching emails:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    console.error("❌ getAllEmails:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // =====================================================
-// 🤖 SECTION 3: GPT EMAIL GENERATION
+// 🤖 GPT EMAIL GENERATION
 // =====================================================
 
-// Generate GPT-based email
 export const getGeneratedEmail = async (req: Request, res: Response) => {
   try {
     const { prompt, thread } = req.body;
 
-    if (!prompt || prompt.trim() === "") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Prompt is required" });
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ success: false, message: "Prompt required" });
     }
 
-    const safeThread =
-      thread && thread.trim() !== ""
-        ? thread
-        : "No prior email context provided.";
-
-    const email = await generateGPTEmail(prompt, safeThread);
-
-    console.log("🤖 GPT email generated:", email);
+    const email = await generateGPTEmail(
+      prompt,
+      thread || "No previous context"
+    );
 
     res.json({ success: true, email });
   } catch (error: any) {
-    console.error("❌ GPT Email Generation Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate GPT email",
-      error: error.message,
-    });
+    console.error("❌ GPT error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// =====================================================
-// 🆕 GET LATEST EMAIL ENTRY (For Gmail Add-on / Extension)
-// =====================================================

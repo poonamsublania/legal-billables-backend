@@ -7,13 +7,9 @@ import {
 
 const router = express.Router();
 
-// POST /manual/create
-router.post("/create", createManualEntry);
-
-// GET /manual/all
-router.get("/all", getManualEntries);
-
-// DELETE /manual/:id
+// REST style (THIS IS WHAT YOUR FRONTEND EXPECTS)
+router.post("/", createManualEntry);
+router.get("/", getManualEntries);
 router.delete("/:id", deleteManualEntry);
 
 export default router;

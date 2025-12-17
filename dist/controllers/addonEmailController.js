@@ -3,30 +3,50 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveAddonEmail = void 0;
-const emailEntry_1 = __importDefault(require("../models/emailEntry"));
+exports.getLatestAddonEmailEntry = exports.saveAddonEmailEntry = void 0;
+const addonEmailEntry_1 = __importDefault(require("../models/addonEmailEntry"));
 /**
- * POST /api/emails/addon
- * Always creates a NEW entry (never update)
+ * POST /api/addon/save
  */
-const saveAddonEmail = async (req, res) => {
+const saveAddonEmailEntry = async (req, res) => {
     try {
-        const entry = new emailEntry_1.default({
-            ...req.body,
-            createdAt: new Date(),
+        console.log("📨 ADDON SAVE BODY:", req.body);
+        const entry = await addonEmailEntry_1.default.create({
+            subject: req.body.subject,
+            clientEmail: req.body.clientEmail,
+            date: req.body.date,
+            trackedTime: req.body.trackedTime,
+            summary: req.body.summary, // 🔥 IMPORTANT
+            status: "Pending",
         });
-        await entry.save();
+        return res.json({ success: true, data: entry });
+    }
+    catch (err) {
+        console.error("❌ Addon save error:", err);
+        return res.status(500).json({ success: false });
+    }
+};
+exports.saveAddonEmailEntry = saveAddonEmailEntry;
+/**
+ * GET /api/addon/latest
+ */
+const getLatestAddonEmailEntry = async (_req, res) => {
+    try {
+        const latest = await addonEmailEntry_1.default
+            .findOne()
+            .sort({ createdAt: -1 })
+            .lean();
+        if (!latest) {
+            return res.json({ success: false });
+        }
         return res.json({
             success: true,
-            data: entry,
+            data: latest,
         });
     }
     catch (err) {
-        console.error("❌ Add-on save failed:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Add-on save failed",
-        });
+        console.error("❌ Addon latest error:", err);
+        return res.status(500).json({ success: false });
     }
 };
-exports.saveAddonEmail = saveAddonEmail;
+exports.getLatestAddonEmailEntry = getLatestAddonEmailEntry;

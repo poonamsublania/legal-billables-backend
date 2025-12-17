@@ -19,7 +19,6 @@ app.use(
       "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm",
       "https://mail.google.com",
       "http://localhost:5173",
-      "http://localhost:3000",
       "http://localhost:5000",
       "https://legal-billables-backend.onrender.com",
     ],
@@ -48,9 +47,8 @@ app.get("/test", (_req: Request, res: Response) => {
 });
 
 // ----------------------------
-// Routes
+// Routes Imports
 // ----------------------------
-
 import authRoutes from "./routes/authRoutes";
 import gptRoutes from "./routes/gptRoutes";
 import clioRoutes from "./routes/clioRoutes";
@@ -62,24 +60,51 @@ import caseRoutes from "./routes/caseRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import clioTestRoutes from "./routes/clioTest";
 import clioLogRoutes from "./routes/clioLog";
+
 import addonEmailRoutes from "./routes/addonEmailRoutes";
 
-
+// ----------------------------
+// Routes Mounting + LOGS
+// ----------------------------
 
 // ⭐ Clio OAuth MUST be root
 app.use("/", clioRoutes);
+console.log("✅ Mounted: /");
 
 app.use("/auth", authRoutes);
+console.log("✅ Mounted: /auth");
+
 app.use("/api/gpt", gptRoutes);
+console.log("✅ Mounted: /api/gpt");
+
 app.use("/api/clients", clientsRoutes);
+console.log("✅ Mounted: /api/clients");
+
 app.use("/api/emails", emailRoutes);
+console.log("✅ Mounted: /api/emails");
+
 app.use("/api/weekly-summary", weeklySummaryRoutes);
+console.log("✅ Mounted: /api/weekly-summary");
+
 app.use("/api/manual", manualRoutes);
+console.log("✅ Mounted: /api/manual");
+
 app.use("/api/cases", caseRoutes);
+console.log("✅ Mounted: /api/cases");
+
 app.use("/api/team", teamRoutes);
+console.log("✅ Mounted: /api/team");
+
 app.use("/api/clio", clioTestRoutes);
+console.log("✅ Mounted: /api/clio (test)");
+
 app.use("/api/clio", clioLogRoutes);
+console.log("✅ Mounted: /api/clio (logs)");
+
+
+
 app.use("/api", addonEmailRoutes);
+console.log("✅ Mounted: /api (addon emails)");
 
 // ----------------------------
 // 404
@@ -110,6 +135,7 @@ app.use((_req: Request, res: Response) => {
 // Frontend Hosting (optional)
 // ----------------------------
 app.use(express.static(path.resolve(__dirname, "../../frontend/dist")));
+
 app.get(/.*/, (_req, res) =>
   res.sendFile(path.resolve(__dirname, "../../frontend/dist/index.html"))
 );

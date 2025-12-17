@@ -7,7 +7,7 @@ exports.createClioTimeEntry = exports.getClioAccessToken = exports.refreshClioTo
 // src/services/clioService.ts
 const axios_1 = __importDefault(require("axios"));
 const ClioToken_1 = __importDefault(require("../models/ClioToken"));
-const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://app.clio.com").replace(/\/+$/, "");
+const CLIO_BASE_URL = (process.env.CLIO_BASE_URL || "https://api.clio.com").replace(/\/+$/, "");
 // ------------------------
 // 🔍 Check token expiry
 // ------------------------
@@ -103,7 +103,7 @@ const createClioTimeEntry = async ({ contactId, matterId, description, minutes, 
                 },
             },
         };
-        const response = await axios_1.default.post(`${CLIO_BASE_URL}/api/v4/time_entries`, payload, {
+        const response = await axios_1.default.post("https://api.clio.com/api/v4/time_entries", payload, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",

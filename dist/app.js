@@ -20,7 +20,6 @@ app.use((0, cors_1.default)({
         "chrome-extension://moiajblmfageiimmjnplhmpjlnhfnalm",
         "https://mail.google.com",
         "http://localhost:5173",
-        "http://localhost:3000",
         "http://localhost:5000",
         "https://legal-billables-backend.onrender.com",
     ],
@@ -44,7 +43,7 @@ app.get("/test", (_req, res) => {
     res.json({ message: "✅ Test route working" });
 });
 // ----------------------------
-// Routes
+// Routes Imports
 // ----------------------------
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const gptRoutes_1 = __importDefault(require("./routes/gptRoutes"));
@@ -57,22 +56,35 @@ const caseRoutes_1 = __importDefault(require("./routes/caseRoutes"));
 const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
 const clioTest_1 = __importDefault(require("./routes/clioTest"));
 const clioLog_1 = __importDefault(require("./routes/clioLog"));
-const addonCache_1 = __importDefault(require("./routes/addonCache"));
-const emailLatest_1 = __importDefault(require("./routes/emailLatest"));
+const addonEmailRoutes_1 = __importDefault(require("./routes/addonEmailRoutes"));
+// ----------------------------
+// Routes Mounting + LOGS
+// ----------------------------
 // ⭐ Clio OAuth MUST be root
 app.use("/", clioRoutes_1.default);
+console.log("✅ Mounted: /");
 app.use("/auth", authRoutes_1.default);
+console.log("✅ Mounted: /auth");
 app.use("/api/gpt", gptRoutes_1.default);
+console.log("✅ Mounted: /api/gpt");
 app.use("/api/clients", clientsRoutes_1.default);
+console.log("✅ Mounted: /api/clients");
 app.use("/api/emails", emailRoutes_1.default);
+console.log("✅ Mounted: /api/emails");
 app.use("/api/weekly-summary", weeklySummaryRoutes_1.default);
+console.log("✅ Mounted: /api/weekly-summary");
 app.use("/api/manual", manualRoutes_1.default);
+console.log("✅ Mounted: /api/manual");
 app.use("/api/cases", caseRoutes_1.default);
+console.log("✅ Mounted: /api/cases");
 app.use("/api/team", teamRoutes_1.default);
+console.log("✅ Mounted: /api/team");
 app.use("/api/clio", clioTest_1.default);
+console.log("✅ Mounted: /api/clio (test)");
 app.use("/api/clio", clioLog_1.default);
-app.use("/api/emails", addonCache_1.default);
-app.use("/api/emails", emailLatest_1.default);
+console.log("✅ Mounted: /api/clio (logs)");
+app.use("/api", addonEmailRoutes_1.default);
+console.log("✅ Mounted: /api (addon emails)");
 // ----------------------------
 // 404
 // ----------------------------
