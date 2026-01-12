@@ -1,21 +1,30 @@
-// src/controllers/gptController.ts
 import { Request, Response } from "express";
-import { generateGPTSummary, generateGPTEmail } from "../services/openaiService";
+import {
+  generateGeminiSummary,
+  generateGeminiEmail,
+} from "../services/geminiService";
 
-// POST /api/gpt/summary
 export const getSummary = async (req: Request, res: Response) => {
-  const { content } = req.body;
-  if (!content) return res.status(400).json({ error: "Content is required" });
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: "Content required" });
 
-  const summary = await generateGPTSummary(content);
-  res.json({ summary });
+    const summary = await generateGeminiSummary(content);
+    res.json({ summary });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// POST /api/gpt/email
 export const getEmail = async (req: Request, res: Response) => {
-  const { prompt, thread } = req.body;
-  if (!prompt || !thread) return res.status(400).json({ error: "Prompt and thread are required" });
+  try {
+    const { prompt, thread } = req.body;
+    if (!prompt || !thread)
+      return res.status(400).json({ error: "Prompt & thread required" });
 
-  const email = await generateGPTEmail(prompt, thread);
-  res.json({ email });
+    const email = await generateGeminiEmail(prompt, thread);
+    res.json({ email });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 };
