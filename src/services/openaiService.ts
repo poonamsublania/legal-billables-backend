@@ -4,15 +4,32 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
-export async function generateEmailSummary(content: string) {
+// -----------------------------
+// GPT SUMMARY
+// -----------------------------
+export async function generateGPTSummary(content: string): Promise<string> {
   const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo", // ✅ stable & cheap
+    model: "gpt-3.5-turbo",
     messages: [
-      { role: "system", content: "Summarize this email for legal billing." },
-      { role: "user", content }
+      { role: "system", content: "Summarize the following legal content clearly." },
+      { role: "user", content },
     ],
-    temperature: 0.3,
   });
 
-  return response.choices[0].message?.content;
+  return response.choices[0].message?.content || "";
+}
+
+// -----------------------------
+// GPT EMAIL
+// -----------------------------
+export async function generateGPTEmail(content: string): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      { role: "system", content: "Write a professional legal email reply." },
+      { role: "user", content },
+    ],
+  });
+
+  return response.choices[0].message?.content || "";
 }
