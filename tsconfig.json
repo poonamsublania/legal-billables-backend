@@ -2,19 +2,17 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
-    "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
-    "node_modules",
-    "mobile-billables-app",
-    "src/jobs",
-    "src/config/push.ts",
-    "src/config/whisper.ts"
+    "node_modules"
   ]
 }
