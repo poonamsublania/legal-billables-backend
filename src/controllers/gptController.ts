@@ -8,7 +8,6 @@ import {
 export const getSummary = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
-
     if (!content) {
       return res.status(400).json({ error: "Content is required" });
     }
@@ -31,16 +30,9 @@ export const getEmail = async (req: Request, res: Response) => {
         .json({ error: "Prompt and thread are required" });
     }
 
-    // ✅ Combine into ONE argument (IMPORTANT)
-    const content = `
-Email Thread:
-${thread}
+    // ✅ BOTH ARGUMENTS PASSED
+    const email = await generateGPTEmail(prompt, thread);
 
-Instruction:
-${prompt}
-`;
-
-    const email = await generateGPTEmail(content);
     res.json({ email });
   } catch (error) {
     res.status(500).json({ error: "Failed to generate email" });
