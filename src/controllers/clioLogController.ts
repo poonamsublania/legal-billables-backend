@@ -1,44 +1,63 @@
+// src/controllers/clioLogController.ts
 import { Request, Response } from "express";
-import ClioTokenModel, { IClioToken } from "../models/ClioToken";
 import axios from "axios";
+import { Document } from "mongoose";
+import ClioTokenModel, { IClioToken } from "../models/ClioToken";
 import { refreshClioToken } from "./clioController";
+
+// ✅ Correct Mongoose document type
+type ClioTokenDoc = Document & IClioToken;
 
 export const logClioTime = async (req: Request, res: Response) => {
   try {
-    let tokenDoc: IClioToken | null = await ClioTokenModel.findById("singleton");
-    if (!tokenDoc)
-      return res.status(401).json({ error: "Clio not connected yet" });
+    let tokenDoc = await ClioTokenModel.findById<ClioTokenDoc>("singleton");
 
-    // Refresh if expired
+    if (!tokenDoc) {
+      return res.status(401).json({ error: "Clio not connected yet" });
+    }
+
+    // 🔄 Refresh if expired
     if (!tokenDoc.expiresAt || Date.now() >= tokenDoc.expiresAt.getTime()) {
       console.log("🔄 Access token expired — refreshing...");
       await refreshClioToken();
-      tokenDoc = await ClioTokenModel.findById("singleton");
+      tokenDoc = await ClioTokenModel.findById<ClioTokenDoc>("singleton");
+
+      if (!tokenDoc?.accessToken) {
+        return res.status(401).json({ error: "Failed to refresh Clio token" });
+      }
     }
 
     const { description, duration, matterId, date } = req.body;
 
-    if (!description || !duration || !matterId)
+    if (!description || !duration || !matterId) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
 
     const payload = {
       data: {
-        type: "TimeEntry",
+        type: "time-entries",
         attributes: {
           description,
           duration,
-          matter_id: matterId,
-          date: date || new Date().toISOString().split("T")[0],
+          "activity-date": date || new Date().toISOString().split("T")[0],
+        },
+        relationships: {
+          matter: {
+            data: {
+              type: "matters",
+              id: matterId,
+            },
+          },
         },
       },
     };
 
     const response = await axios.post(
-      "https://app.clio.com/api/v4/time_entries",
+      "https://api.clio.com/api/v4/time_entries",
       payload,
       {
         headers: {
-          Authorization: `Bearer ${tokenDoc!.accessToken}`,
+          Authorization: `Bearer ${tokenDoc.accessToken}`,
           "Content-Type": "application/json",
         },
       }
