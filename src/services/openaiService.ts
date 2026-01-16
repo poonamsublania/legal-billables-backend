@@ -1,20 +1,31 @@
 // src/services/openaiService.ts
 import OpenAI from "openai";
+import pLimit from "p-limit";
 
+// Initialize OpenAI client
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Helper function to retry on 429
-const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delayMs = 5000): Promise<T> => {
+// Limit concurrent requests to avoid rate limits
+const limit = pLimit(2); // max 2 GPT requests at the same time
+
+// Helper function: Retry with exponential backoff on 429
+const withRetry = async <T>(
+  fn: () => Promise<T>,
+  retries = 5,
+  delayMs = 1000
+): Promise<T> => {
   for (let i = 0; i <= retries; i++) {
     try {
       return await fn();
     } catch (err: any) {
       if (err.status === 429 && i < retries) {
-        console.warn(`⚠️ Rate limit hit, retrying in ${delayMs / 1000}s... (attempt ${i + 1})`);
-        await new Promise(res => setTimeout(res, delayMs));
+        const waitTime = delayMs * Math.pow(2, i); // exponential backoff
+        console.warn(`⚠️ Rate limit hit, retrying in ${waitTime / 1000}s... (attempt ${i + 1})`);
+        await new Promise(res => setTimeout(res, waitTime));
       } else {
+        console.error("❌ GPT request failed:", err.message || err);
         throw err;
       }
     }
@@ -22,27 +33,35 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 3, delayMs = 5000): 
   throw new Error("Max retries reached for GPT request.");
 };
 
-export const generateGPTSummary = async (content: string) => {
-  const response = await withRetry(() =>
-    client.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content }],
+// Generate GPT summary for text
+export const generateGPTSummary = (content: string): Promise<string> => {
+  return limit(() =>
+    withRetry(async () => {
+      const response = await client.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content }],
+        temperature: 0.5,
+        max_tokens: 500,
+      });
+      return response.choices[0].message?.content || "";
     })
   );
-
-  return response.choices[0].message?.content || "";
 };
 
-export const generateGPTEmail = async (prompt: string, thread: string) => {
-  const response = await withRetry(() =>
-    client.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "You are an AI assistant for email writing." },
-        { role: "user", content: `Prompt: ${prompt}\nThread: ${thread}` },
-      ],
+// Generate GPT email response
+export const generateGPTEmail = (prompt: string, thread: string): Promise<string> => {
+  return limit(() =>
+    withRetry(async () => {
+      const response = await client.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "You are an AI assistant for email writing." },
+          { role: "user", content: `Prompt: ${prompt}\nThread: ${thread}` },
+        ],
+        temperature: 0.5,
+        max_tokens: 500,
+      });
+      return response.choices[0].message?.content || "";
     })
   );
-
-  return response.choices[0].message?.content || "";
 };
