@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+
+console.log("🔑 OPENAI KEY VALUE:", process.env.OPENAI_API_KEY);
+console.log("🔑 OPENAI KEY LOADED:", !!process.env.OPENAI_API_KEY);
 import express, { Request, Response } from "express";
 import cors from "cors";
 import path from "path";
@@ -141,3 +144,4 @@ app.get(/.*/, (_req, res) =>
 );
 
 export default app;
+
