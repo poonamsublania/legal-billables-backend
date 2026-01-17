@@ -1,42 +1,50 @@
+// src/services/geminiService.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("❌ GEMINI_API_KEY is missing");
+const geminiApiKey = process.env.GEMINI_API_KEY;
+if (!geminiApiKey) {
+  throw new Error("⚠️ GEMINI_API_KEY is missing!");
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(geminiApiKey);
 
-// --------------------
-// Summary
-// --------------------
+/**
+ * Generate a summary using Gemini.
+ */
 export const generateGPTSummary = async (content: string): Promise<string> => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  try {
+    // Create model instance
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  const result = await model.generateContent(
-    `Summarize the following content professionally for legal billing:\n\n${content}`
-  );
+    // Generate content
+    const result = await model.generateContent(content);
 
-  return result.response.text();
+    // Extract text
+    const text = result.response?.text() ?? "No summary generated";
+    return text;
+  } catch (err) {
+    console.error("❌ Gemini summary error:", err);
+    return "Failed to generate summary";
+  }
 };
 
-// --------------------
-// Email Generation
-// --------------------
-export const generateGPTEmail = async (
-  prompt: string,
-  thread: string
-): Promise<string> => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+/**
+ * Generate an email using Gemini.
+ */
+export const generateGPTEmail = async (prompt: string, thread: string): Promise<string> => {
+  try {
+    const combinedPrompt = `${prompt}\n\nThread:\n${thread}`;
 
-  const result = await model.generateContent(`
-You are an AI assistant that writes professional legal emails.
+    // Create model instance
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-Instruction:
-${prompt}
+    // Generate content
+    const result = await model.generateContent(combinedPrompt);
 
-Email thread:
-${thread}
-`);
-
-  return result.response.text();
+    const text = result.response?.text() ?? "No email generated";
+    return text;
+  } catch (err) {
+    console.error("❌ Gemini email error:", err);
+    return "Failed to generate email";
+  }
 };
