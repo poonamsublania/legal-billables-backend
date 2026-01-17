@@ -1,9 +1,15 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+console.log("🔑 GEMINI KEY VALUE:", process.env.GEMINI_API_KEY);
+console.log("🔑 GEMINI KEY LOADED:", !!process.env.GEMINI_API_KEY);
 
-console.log("🔑 OPENAI KEY VALUE:", process.env.OPENAI_API_KEY);
-console.log("🔑 OPENAI KEY LOADED:", !!process.env.OPENAI_API_KEY);
+console.log(
+  "🔑 GEMINI KEY LOADED:",
+  process.env.GEMINI_API_KEY ? "YES ✅" : "NO ❌"
+);
+
+
 import express, { Request, Response } from "express";
 import cors from "cors";
 import path from "path";

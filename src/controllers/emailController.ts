@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import EmailEntry from "../models/emailEntry";  // Dashboard entries
 import Email from "../models/email";            // Actual emails storage
-import { generateGPTEmail } from "../services/openaiService";
+import { generateGPTEmail } from "../services/geminiService";
 
 // =====================================================
 // 🕓 HELPER FUNCTIONS

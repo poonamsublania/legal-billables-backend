@@ -1,6 +1,6 @@
 // src/controllers/gptController.ts
 import { Request, Response } from "express";
-import { generateGPTSummary, generateGPTEmail } from "../services/openaiService";
+import { generateGPTSummary, generateGPTEmail } from "../services/geminiService";
 
 // POST /api/gpt/summary
 export const getSummary = async (req: Request, res: Response) => {
