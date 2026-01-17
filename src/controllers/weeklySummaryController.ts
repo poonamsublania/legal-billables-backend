@@ -1,10 +1,14 @@
+// src/controllers/weeklySummaryController.ts
 import { Request, Response } from "express";
 import WeeklySummary from "../models/weeklySummary";
-import { openai } from "../config/openai"; // Your existing OpenAI config
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 /**
  * ------------------------------------------------------
- *  SAVE DAILY / GPT-GENERATED SUMMARY  (NO CHANGES)
+ *  SAVE DAILY / GPT-GENERATED SUMMARY
  * ------------------------------------------------------
  */
 export const saveWeeklySummary = async (req: Request, res: Response): Promise<void> => {
@@ -17,7 +21,6 @@ export const saveWeeklySummary = async (req: Request, res: Response): Promise<vo
     }
 
     const now = new Date();
-
     const dayNum = String(now.getDate()).padStart(2, "0");
     const monthNum = String(now.getMonth() + 1).padStart(2, "0");
     const yearNum = now.getFullYear();
@@ -47,7 +50,7 @@ export const saveWeeklySummary = async (req: Request, res: Response): Promise<vo
 
 /**
  * ------------------------------------------------------
- *  GET DAILY / GPT SUMMARIES (NO CHANGES)
+ *  GET DAILY / GPT SUMMARIES
  * ------------------------------------------------------
  */
 export const getWeeklySummaries = async (req: Request, res: Response): Promise<void> => {
@@ -73,7 +76,7 @@ export const getWeeklySummaries = async (req: Request, res: Response): Promise<v
 
 /**
  * ------------------------------------------------------
- *  NEW: GENERATE WEEKLY LEGAL SUMMARY REPORT (PROFESSIONAL)
+ *  GENERATE WEEKLY LEGAL SUMMARY REPORT (GEMINI)
  * ------------------------------------------------------
  */
 export const generateWeeklyLegalReport = async (req: Request, res: Response): Promise<void> => {
@@ -85,7 +88,6 @@ export const generateWeeklyLegalReport = async (req: Request, res: Response): Pr
       return;
     }
 
-    // Fetch entries from your weeklySummary collection
     const entries = await WeeklySummary.find({
       createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
     });
@@ -95,42 +97,41 @@ export const generateWeeklyLegalReport = async (req: Request, res: Response): Pr
       return;
     }
 
-    // Prepare text for GPT
     const entriesText = entries
       .map(
         (e) =>
-          `Client: ${e.clientEmail}\nSubject: ${e.subject}\nSummary: ${e.summary}\nDate: ${e.date} (${e.day})`
+          `Client: ${e.clientEmail}
+Subject: ${e.subject}
+Summary: ${e.summary}
+Date: ${e.date} (${e.day})`
       )
       .join("\n\n");
 
     const prompt = `
-You are a senior legal billing analyst.  
+You are a senior legal billing analyst.
 Create a highly professional Weekly Legal Summary Report.
 
 Required Sections:
 
 📅 Weekly Summary Report (${startDate} — ${endDate})
 
-🧠 Key Legal Themes This Week  
-👥 Clients Covered  
-💼 Matters Worked On  
-📌 Major Work Completed  
-⏳ Total Time & Revenue (Assume each summary = 1 hour unless specified)  
-📉 Productivity Insights  
-📄 Follow-Up Actions for Next Week  
-💼 Client-by-Client Breakdown  
+🧠 Key Legal Themes This Week
+👥 Clients Covered
+💼 Matters Worked On
+📌 Major Work Completed
+⏳ Total Time & Revenue (Assume each summary = 1 hour unless specified)
+📉 Productivity Insights
+📄 Follow-Up Actions for Next Week
+💼 Client-by-Client Breakdown
 
-Entries:\n\n${entriesText}
+Entries:
+${entriesText}
     `;
 
-    // Call GPT
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-    });
-
-    const report = response.choices[0]?.message?.content || "No report generated.";
+    // ✅ GEMINI CALL
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const result = await model.generateContent(prompt);
+    const report = result.response.text();
 
     res.status(200).json({
       success: true,
@@ -145,19 +146,23 @@ Entries:\n\n${entriesText}
 
 /**
  * ------------------------------------------------------
- *  NEW: GET ALL GENERATED WEEKLY REPORTS (If you save them)
+ *  GET ALL GENERATED WEEKLY REPORTS
  * ------------------------------------------------------
  */
 export const getWeeklyLegalReports = async (req: Request, res: Response) => {
   try {
     const reports = await WeeklySummary.find().sort({ createdAt: -1 });
-
     res.json({ success: true, reports });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch weekly reports" });
   }
 };
 
+/**
+ * ------------------------------------------------------
+ *  DELETE WEEKLY SUMMARY
+ * ------------------------------------------------------
+ */
 export const deleteWeeklySummary = async (req: Request, res: Response) => {
   try {
     await WeeklySummary.findByIdAndDelete(req.params.id);
